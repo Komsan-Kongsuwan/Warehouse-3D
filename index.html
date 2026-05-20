@@ -1,0 +1,3250 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>DEMO Warehouse · 3D View</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --bg-deep:    #080c10;
+    --bg-panel:   #0d1520;
+    --bg-card:    #111c2a;
+    --bg-hover:   #162235;
+    --border:     #1e3048;
+    --border-lit: #1e4a6e;
+    --cyan:       #00c8ff;
+    --cyan-dim:   #006a88;
+    --cyan-glow:  rgba(0,200,255,0.15);
+    --amber:      #ffaa00;
+    --amber-dim:  #7a5000;
+    --green:      #00e676;
+    --green-dim:  #005c2e;
+    --red:        #ff4d4d;
+    --text-hi:    #e8f4ff;
+    --text-mid:   #9ec4e0;
+    --text-lo:    #6a90b0;
+    --text-dim:   #8ab0cc;
+    --selected-bg: rgba(0,200,255,0.12);
+    --selected-border: #00c8ff;
+    --scene-bg:   #11151c;
+}
+
+/* ─── LIGHT THEME ─────────────────────────────────────────── */
+body.light {
+    --bg-deep:    #e8eef5;
+    --bg-panel:   #f0f5fa;
+    --bg-card:    #ffffff;
+    --bg-hover:   #e2eaf4;
+    --border:     #c8d8e8;
+    --border-lit: #89b4d8;
+    --cyan:       #1a72b8;
+    --cyan-dim:   #6aaad8;
+    --cyan-glow:  rgba(26,114,184,0.12);
+    --amber:      #1e5fa0;
+    --amber-dim:  #5a90c0;
+    --green:      #1a8c5a;
+    --green-dim:  #a8d8bc;
+    --red:        #c0392b;
+    --text-hi:    #0f2a42;
+    --text-mid:   #2a5070;
+    --text-lo:    #4a7090;
+    --text-dim:   #3a6080;
+    --selected-bg: rgba(26,114,184,0.1);
+    --selected-border: #1a72b8;
+    --scene-bg:   #d0dce8;
+}
+
+/* ─── THEME TOGGLE BUTTON ─────────────────────────────────── */
+#themeToggle {
+    width: 32px;
+    height: 18px;
+    border-radius: 9px;
+    background: var(--border-lit);
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+}
+#themeToggle::after {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-hi);
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s, background 0.3s;
+}
+body.light #themeToggle {
+    background: var(--cyan);
+}
+body.light #themeToggle::after {
+    transform: translateX(14px);
+    background: #ffffff;
+}
+
+#theme-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.theme-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    transition: color 0.3s;
+    user-select: none;
+}
+.theme-label.active { color: var(--cyan); }
+
+
+html {
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    overflow: hidden;
+    background: var(--bg-deep);
+    font-family: 'Rajdhani', sans-serif;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* ─── SIDEBAR ─────────────────────────────────────────── */
+#sidebar {
+    position: relative;
+    width: 240px;
+    min-width: 240px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    z-index: 200;
+    overflow: hidden;
+    height: 100%;
+}
+
+/* subtle grid texture */
+
+
+/* ─── HEADER ─────────────────────────────────────────── */
+.sidebar-header {
+    position: relative;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+    justify-content: space-between;
+}
+
+.sidebar-logo-icon {
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, var(--cyan), var(--cyan-dim));
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    box-shadow: 0 0 10px rgba(0,200,255,0.3);
+    flex-shrink: 0;
+}
+
+.sidebar-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text-hi);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.sidebar-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-lo);
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+
+/* ─── SCROLL BODY ─────────────────────────────────────── */
+.sidebar-body {
+    flex: 1 1 0;
+    overflow: hidden;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+}
+
+.sidebar-body::-webkit-scrollbar { width: 4px; }
+.sidebar-body::-webkit-scrollbar-track { background: transparent; }
+.sidebar-body::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
+
+/* ─── SECTION LABELS ─────────────────────────────────── */
+.section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-lo);
+    padding: 0 4px;
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+/* ─── UPLOAD CARDS ─────────────────────────────────────── */
+.upload-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+    height: 54px;          /* fixed height — never grows */
+    flex-shrink: 0;        /* never shrinks inside sidebar */
+    min-height: 54px;
+}
+
+.upload-card:hover {
+    border-color: var(--border-lit);
+    background: var(--bg-hover);
+    box-shadow: 0 0 12px rgba(0,200,255,0.08);
+}
+
+.upload-card.loaded {
+    border-color: var(--green-dim);
+    background: rgba(0, 230, 118, 0.05);
+}
+
+.upload-card.loaded:hover {
+    border-color: var(--green);
+    box-shadow: 0 0 12px rgba(0,230,118,0.1);
+}
+
+.upload-card-icon {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;   /* never squeezes */
+    border-radius: 6px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border-lit);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+}
+
+.upload-card.loaded .upload-card-icon {
+    border-color: var(--green-dim);
+}
+
+.upload-card-info {
+    flex: 1;
+    min-width: 0;        /* allow text truncation */
+    overflow: hidden;    /* clip any overflow */
+}
+
+.upload-card-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-hi);
+    letter-spacing: 0.5px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upload-card-filename {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-lo);
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.2s;
+}
+
+.upload-card.loaded .upload-card-filename {
+    color: var(--green);
+}
+
+.upload-card-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-lo);
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.upload-card.loaded .upload-card-status {
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+}
+
+/* ─── RESET BUTTON ─────────────────────────────────────── */
+.reset-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 9px 0;
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+.reset-btn:hover:not(.no-selection) {
+    background: var(--cyan-glow);
+    border-color: var(--cyan);
+    box-shadow: 0 0 14px rgba(0,200,255,0.2);
+}
+.reset-btn.no-selection {
+    cursor: default;
+    color: var(--text-dim);
+    border-color: var(--border);
+    pointer-events: none;
+}
+
+/* ─── DIVIDER ─────────────────────────────────────────── */
+.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 2px 0;
+    flex-shrink: 0;
+}
+
+/* ─── LEGEND ─────────────────────────────────────────── */
+#legend-controls {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 2px;
+}
+#legend {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin: 0 -10px;
+    padding: 0 10px;
+}
+#legend::-webkit-scrollbar { width: 3px; }
+#legend::-webkit-scrollbar-track { background: transparent; }
+#legend::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
+
+.legend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    margin-bottom: 4px;
+}
+#legend-search {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px 5px 26px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-hi);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23667' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 8px center;
+    -webkit-text-fill-color: var(--text-hi);
+}
+#legend-search:focus { border-color: var(--cyan); }
+#legend-search::placeholder { color: var(--text-lo); }
+.legend-search-wrap {
+    padding: 0 4px;
+    margin-bottom: 2px;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+#legend-search {
+    flex: 1;
+}
+#legend-search-clear {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    color: var(--text-lo);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    display: none;
+    transition: color 0.15s;
+}
+#legend-search-clear:hover { color: var(--text-hi); }
+#legend-search.has-value { padding-right: 20px; }
+.legend-toggle-wrap {
+    display: flex;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+.legend-toggle-btn {
+    background: none;
+    border: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-hi);
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+.legend-toggle-btn.active {
+    background: var(--cyan);
+    color: #000;
+    font-weight: 700;
+}
+.legend-toggle-btn:not(.active):hover { background: var(--bg-hover); color: var(--cyan); }
+
+.legend-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-lo);
+}
+
+.legend-count-total {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-mid);
+}
+
+.legend-empty {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-lo);
+    text-align: center;
+    padding: 16px 8px;
+    line-height: 1.6;
+}
+
+.empty-slot-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-mid);
+}
+
+.empty-slot-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: #cccccc;
+    border: 1px solid #888;
+    flex-shrink: 0;
+}
+
+/* ─── LEGEND ROWS ─────────────────────────────────────── */
+.legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    position: relative;
+}
+
+.legend-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--border);
+}
+
+.legend-row.selected {
+    background: var(--selected-bg);
+    border-color: var(--selected-border);
+    box-shadow: 0 0 0 1px rgba(0,200,255,0.1), inset 0 0 12px rgba(0,200,255,0.06);
+}
+
+.legend-row.selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--cyan);
+    border-radius: 6px 0 0 6px;
+    box-shadow: 0 0 8px var(--cyan);
+}
+
+.color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+    transition: box-shadow 0.2s;
+}
+
+.legend-row.selected .color-box {
+    box-shadow: 0 0 6px currentColor;
+}
+
+.legend-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-mid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s;
+    letter-spacing: 0.3px;
+}
+
+.legend-row.selected .legend-name {
+    color: var(--text-hi);
+    font-weight: 600;
+}
+
+.count-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-lo);
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1px 7px;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.legend-row.selected .count-badge {
+    color: var(--cyan);
+    border-color: var(--cyan-dim);
+}
+
+/* ─── VIEWPORT & SCROLLBARS ───────────────────────────────── */
+#viewport-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#canvas-container {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+#canvas-container canvas {
+    display: block;
+}
+
+.scroll-track {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    position: relative;
+    flex-shrink: 0;
+}
+
+#hscroll-track {
+    height: 14px;
+    border-top: 1px solid var(--border);
+    overflow-x: scroll;
+    overflow-y: hidden;
+}
+
+#vscroll-track {
+    width: 14px;
+    border-left: 1px solid var(--border);
+    overflow-y: scroll;
+    overflow-x: hidden;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+/* Inner div that sets the scroll range */
+#hscroll-inner { height: 1px; }
+#vscroll-inner { width: 1px; }
+
+/* ── Viewport top-left label ── */
+#viewport-label {
+    position: fixed;
+    top: 18px;
+    left: 258px;
+    z-index: 9000;
+    pointer-events: none;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#viewport-label .vp-icon {
+    font-size: 20px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));
+}
+#viewport-label .vp-text {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.92);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.7);
+    transition: color 0.3s;
+}
+body.light #viewport-label .vp-text {
+    color: rgba(10,35,70,0.85);
+    text-shadow: 0 1px 3px rgba(255,255,255,0.8);
+}
+#dev-credit {
+    position: fixed;
+    bottom: 134px;
+    right:  18px;
+    z-index: 9000;
+    text-align: right;
+    line-height: 1.55;
+    pointer-events: auto;
+    user-select: none;
+}
+#dev-credit .dev-line {
+    display: block;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: rgba(180,210,235,0.6);
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    transition: color 0.3s;
+}
+body.light #dev-credit .dev-line {
+    color: rgba(20,60,100,0.5);
+    text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+}
+#hscroll-track::-webkit-scrollbar { height: 14px; }
+#hscroll-track::-webkit-scrollbar-track { background: var(--bg-card); }
+#hscroll-track::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 7px; border: 3px solid var(--bg-card); }
+#hscroll-track::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+
+#vscroll-track::-webkit-scrollbar { width: 14px; }
+#vscroll-track::-webkit-scrollbar-track { background: var(--bg-card); }
+#vscroll-track::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 7px; border: 3px solid var(--bg-card); }
+#vscroll-track::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+/* ─── ROW 2D PANEL ─────────────────────────────────────────── */
+#row-panel-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 8000;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(2px);
+}
+#row-panel {
+    position: fixed;
+    top: 50%;  left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8100;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+    display: none;
+    flex-direction: column;
+    max-width: calc(100vw - 280px);
+    max-height: calc(100vh - 60px);
+    overflow: hidden;
+    min-width: 340px;
+}
+#row-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg-panel);
+}
+#row-panel-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 0.06em;
+}
+#row-panel-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+    font-family: 'DM Mono', monospace;
+}
+/* Dark mode: ensure visible text */
+#row-panel-title { color: #5bc8ff; }
+body.light #row-panel-title { color: #0d5fa3; }
+
+#row-panel-meta { color: rgba(160,185,210,0.85); }
+body.light #row-panel-meta { color: rgba(40,60,100,0.75); }
+
+#row-panel-close {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    color: #ccc;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s, color 0.15s;
+}
+body.light #row-panel-close { background: rgba(0,0,0,0.06); color: #444; }
+#row-panel-close:hover { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+#row-panel-body {
+    overflow: auto;
+    padding: 14px 18px 18px;
+    flex: 1;
+    background: var(--bg-panel);
+}
+.rp-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: 'DM Mono', monospace;
+}
+.rp-level-row {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.rp-level-label {
+    width: 32px;
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 600;
+    color: #5bc8ff;
+    text-align: right;
+    padding-right: 6px;
+}
+body.light .rp-level-label { color: #0d5fa3; }
+
+.rp-cell {
+    flex: 0 0 auto;
+    width: 54px;
+    height: 44px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 8.5px;
+    line-height: 1.25;
+    text-align: center;
+    padding: 2px;
+    cursor: default;
+    transition: transform 0.1s, box-shadow 0.1s;
+    word-break: break-all;
+    box-sizing: border-box;
+}
+.rp-cell:hover {
+    transform: scale(1.1);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.5);
+    z-index: 1;
+    position: relative;
+}
+
+/* EMPTY — dark mode: subtle dark inset, dotted border */
+.rp-cell.empty {
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.12);
+    color: rgba(160,185,210,0.5);
+}
+/* EMPTY — light mode: very light gray, dashed border */
+body.light .rp-cell.empty {
+    background: rgba(0,0,0,0.04);
+    border: 1px dashed rgba(0,0,40,0.18);
+    color: rgba(80,100,130,0.5);
+}
+
+/* OCCUPIED — solid color background (set inline), always white or dark text */
+.rp-cell.occupied {
+    border: none;
+    font-weight: 400;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.rp-cell .rp-loc {
+    font-size: 8.5px;
+    font-weight: 400;
+    line-height: 1.2;
+}
+.rp-cell .rp-cust {
+    font-size: 7.5px;
+    opacity: 0.9;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50px;
+}
+.rp-cell {
+    position: relative;
+}
+.rp-count {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    font-size: 7.5px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    line-height: 1;
+    background: rgba(255,255,255,0.9);
+    color: #ff4444;
+    border-radius: 3px;
+    padding: 1px 3px;
+    pointer-events: none;
+}
+.rp-cell.empty .rp-count {
+    background: rgba(100,130,160,0.25);
+    color: rgba(160,190,220,0.6);
+}
+
+.rp-bay-labels {
+    display: flex;
+    gap: 3px;
+    padding-left: 38px;
+    margin-bottom: 4px;
+}
+.rp-bay-label {
+    flex: 0 0 54px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(160,185,210,0.7);
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+}
+body.light .rp-bay-label { color: rgba(40,60,100,0.6); }
+
+/* ─── STATS PANEL (top-right viewport) ─────────────────────── */
+#stats-panel {
+    position: fixed;
+    top: 14px;
+    right: 28px;
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    pointer-events: none;
+    user-select: none;
+    align-items: flex-end;
+}
+.stats-row {
+    display: flex;
+    gap: 5px;
+}
+.stat-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 92px;
+    height: 46px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+.stat-card .sc-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+    white-space: nowrap;
+    text-align: center;
+}
+.stat-card .sc-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-hi);
+    line-height: 1;
+}
+.stat-card.util .sc-value { color: #5bc8ff; }
+body.light .stat-card.util .sc-value { color: #0d5fa3; }
+/* Aging row — color-coded */
+.stat-card.age-3m  .sc-value { color: #4caf50; }
+.stat-card.age-6m  .sc-value { color: #8bc34a; }
+.stat-card.age-1y  .sc-value { color: #ffc107; }
+.stat-card.age-2y  .sc-value { color: #ff7043; }
+.stat-card.age-2yp .sc-value { color: #e53935; }
+.stat-card.age-hdr {
+    background: transparent;
+    border-color: transparent;
+    width: auto;
+    height: 46px;
+    padding: 5px 6px;
+    align-items: flex-end;
+    justify-content: center;
+}
+.stat-card.age-hdr .sc-label {
+    font-size: 8px;
+    color: var(--text-lo);
+    text-align: right;
+    white-space: nowrap;
+    margin-bottom: 0;
+    text-transform: none;
+    letter-spacing: 0;
+}
+/* Clickable age stat cards */
+.sc-age-card {
+    cursor: pointer;
+    pointer-events: all;
+    transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.sc-age-card:hover {
+    transform: scale(1.06);
+    box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+    border-color: var(--border-lit);
+}
+.sc-age-card.active {
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 10px rgba(0,200,255,0.3);
+    transform: scale(1.06);
+}
+body.light .sc-age-card.active {
+    border-color: var(--cyan) !important;
+    box-shadow: 0 0 10px rgba(26,114,184,0.25);
+}
+
+/* ─── USAGE GUIDE (bottom-left viewport) ───────────────────── */
+#usage-guide {
+    position: fixed;
+    bottom: 134px;
+    left: 254px;
+    z-index: 9000;
+    display: flex;
+    gap: 10px;
+    pointer-events: none;
+    user-select: none;
+    align-items: center;
+}
+.ug-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: rgba(160,200,230,0.65);
+    white-space: nowrap;
+}
+body.light .ug-item { color: rgba(30,70,110,0.55); }
+.ug-key {
+    font-weight: 700;
+    color: rgba(91,200,255,0.85);
+}
+body.light .ug-key { color: rgba(13,95,163,0.75); }
+.ug-sep {
+    color: rgba(100,150,180,0.5);
+    font-size: 8px;
+}
+
+#demo-notice {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8500;
+    background: rgba(10,20,40,0.88);
+    border: 1px solid rgba(91,200,255,0.35);
+    border-radius: 10px;
+    padding: 12px 20px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    pointer-events: none;
+    transition: opacity 1.2s ease;
+    opacity: 1;
+}
+body.light #demo-notice {
+    background: rgba(230,240,255,0.92);
+    border-color: rgba(13,95,163,0.3);
+}
+#demo-notice.fade-out { opacity: 0; }
+#demo-notice .dn-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #5bc8ff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+body.light #demo-notice .dn-title { color: #0d5fa3; }
+#demo-notice .dn-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 9.5px;
+    color: rgba(180,210,240,0.8);
+    max-width: 320px;
+    line-height: 1.5;
+}
+body.light #demo-notice .dn-text { color: rgba(30,60,100,0.7); }
+
+#row-picker {
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    padding: 5px 8px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-lit) transparent;
+}
+#row-picker::-webkit-scrollbar { height: 4px; }
+#row-picker::-webkit-scrollbar-track { background: transparent; }
+#row-picker::-webkit-scrollbar-thumb { background: var(--border-lit); border-radius: 2px; }
+.rp-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(200,220,240,0.85);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s, color 0.12s, border-color 0.12s, transform 0.1s;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+.rp-badge:hover {
+    background: rgba(91,200,255,0.18);
+    border-color: rgba(91,200,255,0.5);
+    color: #5bc8ff;
+}
+.rp-badge.active {
+    background: #1a6aaa;
+    border-color: #5bc8ff;
+    color: #fff;
+    transform: scale(1.05);
+}
+body.light .rp-badge {
+    background: rgba(0,0,0,0.06);
+    border-color: rgba(0,0,80,0.18);
+    color: rgba(20,50,90,0.8);
+}
+body.light .rp-badge:hover {
+    background: rgba(13,95,163,0.15);
+    border-color: #0d5fa3;
+    color: #0d5fa3;
+}
+body.light .rp-badge.active {
+    background: #0d5fa3;
+    border-color: #0d5fa3;
+    color: #fff;
+}
+
+#loc-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9100;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(3px);
+}
+#loc-modal {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9200;
+    width: min(560px, calc(100vw - 60px));
+    max-height: calc(100vh - 80px);
+    border-radius: 14px;
+    overflow: hidden;
+    flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.7);
+}
+#loc-modal-header {
+    background: linear-gradient(135deg, #1a3a6e 0%, #4a2080 100%);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+#loc-modal-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.05em;
+}
+#loc-modal-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    line-height: 1;
+}
+#loc-modal-close:hover { background: rgba(255,255,255,0.3); }
+#loc-modal-body {
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f4f5f7;
+    flex: 1;
+}
+body:not(.light) #loc-modal-body { background: #141922; }
+.loc-item-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    border-left: 4px solid #4a2080;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+body:not(.light) .loc-item-card { background: #1e2736; border-left-color: #7b4fcf; }
+.loc-item-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #3a1070;
+    margin-bottom: 10px;
+}
+body:not(.light) .loc-item-title { color: #c8a8ff; }
+.loc-item-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+}
+.loc-item-field { display: flex; flex-direction: column; gap: 2px; }
+.loc-item-label {
+    font-size: 10px;
+    color: #888;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+body:not(.light) .loc-item-label { color: #8aaccc; }
+.loc-item-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+}
+body:not(.light) .loc-item-value { color: #e8f2ff; }
+.loc-item-value.good    { color: #1a7a3a; }
+.loc-item-value.held    { color: #c47a00; }
+.loc-item-value.damaged { color: #b01020; }
+body:not(.light) .loc-item-value.good    { color: #4caf50; }
+body:not(.light) .loc-item-value.held    { color: #ffb300; }
+body:not(.light) .loc-item-value.damaged { color: #ef5350; }
+.loc-empty-msg {
+    text-align: center;
+    padding: 32px;
+    color: #999;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Summary card at bottom of location modal */
+.loc-summary-card {
+    background: linear-gradient(135deg, #1a3a6e 0%, #4a2080 100%);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 4px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 16px;
+}
+body.light .loc-summary-card {
+    background: linear-gradient(135deg, #dce8f8 0%, #e8ddf8 100%);
+}
+.loc-summary-card .loc-item-label {
+    color: rgba(200,220,255,0.85);
+}
+body.light .loc-summary-card .loc-item-label { color: rgba(30,60,120,0.65); }
+.loc-summary-card .loc-item-value {
+    color: #e8f4ff;
+    font-size: 14px;
+}
+body.light .loc-summary-card .loc-item-value { color: #0f2a42; }
+.loc-summary-title {
+    grid-column: 1/-1;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #e0eeff;
+    margin-bottom: 4px;
+}
+body.light .loc-summary-title { color: #0f2a42; }
+
+#hover-tooltip {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    background: rgba(10,20,35,0.92);
+    border: 1px solid var(--border-lit);
+    border-radius: 6px;
+    padding: 7px 11px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+body.light #hover-tooltip {
+    background: rgba(255,255,255,0.96);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+#hover-tooltip .tt-location {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    letter-spacing: 0.5px;
+}
+#hover-tooltip .tt-customer {
+    font-size: 12px;
+    color: var(--text-mid);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+#hover-tooltip .tt-empty {
+    font-size: 11px;
+    color: var(--text-lo);
+    font-style: italic;
+}
+
+.sidebar-footer {
+    border-top: 1px solid var(--border);
+    padding: 8px 12px;
+    flex-shrink: 0;
+}
+
+#status {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--text-lo);
+    letter-spacing: 0.5px;
+    line-height: 1.5;
+}
+
+#status .stat-hi { color: var(--cyan); font-weight: 500; }
+#status .stat-ok { color: var(--green); }
+#status .stat-warn { color: var(--amber); }
+
+.front-badge { color: var(--green); font-weight: bold; }
+.back-badge  { color: var(--amber); font-weight: bold; }
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+    <!-- Header -->
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <div id="theme-toggle-wrap">
+                <button id="themeToggle" title="Toggle light / dark theme"></button>
+                <span class="theme-label active" id="label-theme">Dark</span>
+            </div>
+        </div>
+        <div class="sidebar-sub">WAREHOUSE · 3D VIEW</div>
+    </div>
+
+    <!-- Scrollable body -->
+    <div class="sidebar-body">
+
+        <!-- File uploads -->
+        <div class="section-label">Data Sources</div>
+        <div class="upload-card" id="layoutCard">
+            <div class="upload-card-icon">📐</div>
+            <div class="upload-card-info">
+                <div class="upload-card-label">Layout Template</div>
+                <div class="upload-card-filename" id="layoutFileName">Click to load .xlsx</div>
+            </div>
+            <div class="upload-card-status"></div>
+            <input type="file" id="layoutFile" accept=".xlsx" style="display:none;">
+        </div>
+
+
+        <div class="upload-card" id="csvCard">
+            <div class="upload-card-icon">📋</div>
+            <div class="upload-card-info">
+                <div class="upload-card-label">DEMO Inventory</div>
+                <div class="upload-card-filename" id="fileName">Click to load .csv</div>
+            </div>
+            <div class="upload-card-status"></div>
+            <input type="file" id="csvFile" accept=".csv" style="display:none;">
+        </div>
+
+        <!-- Reset -->
+        <button id="resetBtn" class="reset-btn no-selection">
+            <span id="resetBtnLabel">All Customers</span>
+        </button>
+
+        <hr class="divider">
+
+        <!-- Legend -->
+        <div id="legend-controls">
+            <!-- toggle + count + search stay fixed, built by updateLegend -->
+        </div>
+        <div id="legend">
+            <div class="legend-empty">Upload inventory CSV<br>to see data</div>
+        </div>
+
+    </div>
+
+    <!-- Footer status -->
+    <div class="sidebar-footer">
+        <div id="status">⏳ Upload Layout Template to get started</div>
+    </div>
+</div><!-- end sidebar -->
+
+<div id="hover-tooltip">
+    <div class="tt-location"></div>
+    <div class="tt-customer"></div>
+</div>
+
+<div id="viewport-wrap">
+    <div style="display:flex;flex:1;overflow:hidden;position:relative;">
+        <div id="canvas-container"></div>
+        <div id="vscroll-track" class="scroll-track">
+            <div id="vscroll-inner"></div>
+        </div>
+    </div>
+    <div id="row-picker"></div>
+    <div id="hscroll-track" class="scroll-track">
+        <div id="hscroll-inner"></div>
+    </div>
+</div>
+
+<!-- Location Detail Modal -->
+<div id="loc-modal-backdrop"></div>
+<div id="loc-modal">
+    <div id="loc-modal-header">
+        <div id="loc-modal-title">Location: —</div>
+        <button id="loc-modal-close">✕</button>
+    </div>
+    <div id="loc-modal-body"></div>
+</div>
+
+<!-- Row 2D Panel — must be before <script> so DOM exists when JS binds events -->
+<div id="row-panel-backdrop"></div>
+<div id="row-panel">
+    <div id="row-panel-header">
+        <div>
+            <div id="row-panel-title">ROW —</div>
+            <div id="row-panel-meta"></div>
+        </div>
+        <button id="row-panel-close" title="Close (Esc)">✕</button>
+    </div>
+    <div id="row-panel-body">
+        <div class="rp-grid" id="row-panel-grid"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── EMBEDDED INITIAL DATA (generated from Locations.xlsx + Demo inventory) ──
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+// ---------------- DYNAMIC LAYOUT CONFIGURATION ----------------
+// These are populated by buildLayoutFromConfig() on file upload.
+// Do NOT hardcode — driven entirely by Warehouse_Layout_Template.xlsx
+
+let ROW_COL_INDEX  = {};   // rowName → X position (world units, already scaled)
+let rowGeometry    = new Map(); // rowName → { xPos, zStart, maxBay, maxLevel, aisleGroup }
+let allLayoutRows  = [];   // full list in order, for floor labels & buildRack iteration
+let MAX_BAY   = 24;
+let MAX_LEVEL = 7;
+
+// Rack geometry constants (not layout-dependent)
+const CUBE_WIDTH    = 12.0;
+const CUBE_HEIGHT   = 8.0;
+const CUBE_DEPTH    = 8.0;   // rack depth (Z dimension)
+const X_SCALE       = 13.0;
+const BAY_SPACING   = CUBE_DEPTH;
+const LEVEL_SPACING = 8.0;
+const EMPTY_COLOR   = 0xcccccc;
+
+// Floor pallet constants — scale: 1m = 2.54 units, 1 layer fixed, width 70% of original
+const PALLET_W       = 6.0;  // footprint width
+const PALLET_DEPTH   = 8.0;  // footprint depth
+const PALLET_SPACING = 9.2;  // center-to-center with gap
+const PALLET_HEIGHT  = 6.0;  // cube height
+
+// ---------------- LOCATION DATA ----------------
+// Declared here so buildLayoutFromConfig() can populate rowMaxData immediately
+const validLocations = new Set();
+const rowMaxData = new Map();
+
+// ---------------- LOCATION ID PATTERN ENGINE ----------------
+// Tokens:
+//   {row}           → row name as-is
+//   {level}         → level number
+//   {bay}           → physical bay number (1..maxBay)
+//   {pallet}        → pallet position within bay (1..PPL)
+//   {slot}          → global pallet column = (bay-1)*PPL + pallet  (1..maxBay*PPL)
+//   {col_seq}       → sequential within one bay column = (level-1)*PPL + pallet
+//   {seq}           → global sequential = (level-1)*maxBay*PPL + (bay-1)*PPL + pallet
+//   All above support :02 and :03 zero-padding suffix
+//
+// Common patterns:
+//   {row}-{level}-{slot}          → A-7-1   (level explicit, slot counts pallets across bays)
+//   {row}{bay:02}-{col_seq:02}    → A09-01  (bay column + seq up the column)
+//   {row}-{level}-{bay}           → A-7-1   (when PPL=1, slot==bay)
+//   {row}-{level:02}-{bay:02}     → A-07-01
+
+const DEFAULT_LOC_PATTERN = '{row}-{level}-{bay}';
+
+function makeLocKey(pattern, rowName, level, bay, maxBay, pallet, palletsPerLevel) {
+    const ppl      = palletsPerLevel || 1;
+    const pal      = pallet || 1;
+    const slot     = (bay - 1) * ppl + pal;                         // global pallet column
+    const col_seq  = (level - 1) * ppl + pal;                       // seq within bay column
+    const seq      = (level - 1) * (maxBay || 1) * ppl + slot - 1; // global sequential (0-based start fix)
+    const seqFix   = (level - 1) * (maxBay || 1) * ppl + (bay - 1) * ppl + pal; // 1-based
+
+    return pattern
+        .replace('{row}',           rowName)
+        .replace('{level:03}',      String(level).padStart(3, '0'))
+        .replace('{bay:03}',        String(bay).padStart(3, '0'))
+        .replace('{pallet:03}',     String(pal).padStart(3, '0'))
+        .replace('{slot:03}',       String(slot).padStart(3, '0'))
+        .replace('{col_seq:03}',    String(col_seq).padStart(3, '0'))
+        .replace('{seq:03}',        String(seqFix).padStart(3, '0'))
+        .replace('{level:02}',      String(level).padStart(2, '0'))
+        .replace('{bay:02}',        String(bay).padStart(2, '0'))
+        .replace('{pallet:02}',     String(pal).padStart(2, '0'))
+        .replace('{slot:02}',       String(slot).padStart(2, '0'))
+        .replace('{col_seq:02}',    String(col_seq).padStart(2, '0'))
+        .replace('{seq:02}',        String(seqFix).padStart(2, '0'))
+        .replace('{level}',         String(level))
+        .replace('{bay}',           String(bay))
+        .replace('{pallet}',        String(pal))
+        .replace('{slot}',          String(slot))
+        .replace('{col_seq}',       String(col_seq))
+        .replace('{seq}',           String(seqFix));
+}
+
+// ---------------- BUILD LAYOUT FROM CONFIG ----------------
+// Accepts array of layoutRow objects parsed from xlsx.
+// Each row has: rowName, xPos, zStart, maxBays, maxLevels, aisleGroup,
+//               orientation, locPattern
+// No FRONT/BACK — every row carries its own world-space coordinates.
+
+function buildLayoutFromConfig(layoutRows) {
+    ROW_COL_INDEX = {};
+    rowGeometry.clear();
+    rowMaxData.clear();
+    allLayoutRows = [];
+
+    let maxBayAll = 0, maxLevelAll = 0;
+
+    layoutRows.forEach(r => {
+        const xPos  = (r.xPos  !== undefined) ? Number(r.xPos)  : Number(r.colIndex) * X_SCALE;
+        const zStart= (r.zStart !== undefined) ? Number(r.zStart) : 50;
+        const pat   = (r.locPattern && String(r.locPattern).trim())
+                        ? String(r.locPattern).trim()
+                        : DEFAULT_LOC_PATTERN;
+
+        ROW_COL_INDEX[r.rowName] = xPos;
+        rowMaxData.set(r.rowName, { maxBay: r.maxBays, maxLevel: r.maxLevels });
+        rowGeometry.set(r.rowName, {
+            xPos,
+            zStart,
+            maxBay:          r.maxBays,
+            maxLevel:        r.maxLevels,
+            palletsPerLevel: (r.palletsPerLevel && Number(r.palletsPerLevel) > 0)
+                               ? Number(r.palletsPerLevel) : 1,
+            aisleGroup:      r.aisleGroup  || r.rowName,
+            aisleSide:       r.aisleSide   || 'Single',
+            orientation:     (r.orientation !== undefined) ? Number(r.orientation) : 90,
+            locPattern:      pat,
+            type:            (r.type && String(r.type).trim().toLowerCase() === 'floor')
+                               ? 'floor' : 'rack',
+        });
+        allLayoutRows.push(r.rowName);
+        if (r.maxBays   > maxBayAll)   maxBayAll   = r.maxBays;
+        if (r.maxLevels > maxLevelAll) maxLevelAll = r.maxLevels;
+    });
+
+    // Sort rows naturally: letter prefix A→Z, then number 1→99
+    allLayoutRows.sort((a, b) => {
+        const pa = a.match(/^([A-Za-z]+)(\d+)$/);
+        const pb = b.match(/^([A-Za-z]+)(\d+)$/);
+        if (pa && pb) {
+            if (pa[1] !== pb[1]) return pa[1].localeCompare(pb[1]);
+            return parseInt(pa[2]) - parseInt(pb[2]);
+        }
+        return a.localeCompare(b, undefined, { numeric: true });
+    });
+
+    MAX_BAY   = maxBayAll;
+    MAX_LEVEL = maxLevelAll;
+
+    console.log(`Layout built: ${layoutRows.length} rows, MAX_BAY=${MAX_BAY}, MAX_LEVEL=${MAX_LEVEL}`);
+}
+
+// ---------------- THREE.JS SETUP ----------------
+
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x11151c);
+
+// Camera at the FRONT of the warehouse, looking toward the BACK (+Z direction).
+// Warehouse X centre ≈ col23 × 13 ≈ 300
+// Warehouse Z range: K-S front (~50) to A-Z6 back (~490), centre ≈ 270
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 20000);
+camera.position.set(320, 280, -500);
+camera.lookAt(320, 0, 320);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(window.devicePixelRatio);
+// initial size accounts for sidebar width
+function updateRendererSize() {
+    const container = document.getElementById('canvas-container');
+    const w = container.offsetWidth;
+    const h = container.offsetHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+}
+updateRendererSize();
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+// Resize handler
+window.addEventListener("resize", () => {
+    updateRendererSize();
+});
+
+// Orbit Controls - target warehouse centre
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.target.set(320, 0, 320);
+controls.enableDamping = false;
+controls.rotateSpeed   = 0.12;
+controls.zoomSpeed     = 2.5;
+controls.panSpeed      = 1.5;
+controls.enablePan     = true;
+controls.enableZoom    = true;
+controls.zoomToCursor  = false;
+controls.mouseButtons  = {
+    LEFT:   THREE.MOUSE.ROTATE,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT:  THREE.MOUSE.PAN          // right-drag = pan
+};
+controls.maxPolarAngle = Math.PI / 2.2;
+controls.update();
+
+// ---------------- SCROLLBAR PAN ----------------
+// Scroll range in world units — how far left/right and up/down you can pan
+const PAN_H_RANGE = 1200;   // total horizontal world width
+const PAN_V_RANGE = 600;    // total vertical world height
+
+// Set inner div sizes to create scrollable range
+// Actual pixel size doesn't matter — ratio drives the scroll position
+const H_INNER_PX = 4000;
+const V_INNER_PX = 4000;
+document.getElementById('hscroll-inner').style.width  = H_INNER_PX + 'px';
+document.getElementById('vscroll-inner').style.height = V_INNER_PX + 'px';
+
+// Start scrollbars at the middle so user can pan both ways
+function initScrollbars() {
+    const ht = document.getElementById('hscroll-track');
+    const vt = document.getElementById('vscroll-track');
+    ht.scrollLeft = (H_INNER_PX - ht.offsetWidth) * 0.26;
+    vt.scrollTop  = (V_INNER_PX - vt.offsetHeight) / 2;
+}
+
+// Convert scroll position (0→1) to world offset from centre
+let _lastHScroll = 0.5;
+let _lastVScroll = 0.5;
+
+document.getElementById('hscroll-track').addEventListener('scroll', function() {
+    const t   = document.getElementById('hscroll-track');
+    const max = H_INNER_PX - t.offsetWidth;
+    const ratio = max > 0 ? t.scrollLeft / max : 0.5;
+    const delta = (ratio - _lastHScroll) * PAN_H_RANGE;
+    _lastHScroll = ratio;
+
+    // Pan camera and target along world X axis
+    camera.position.x -= delta;
+    controls.target.x -= delta;
+    controls.update();
+});
+
+document.getElementById('vscroll-track').addEventListener('scroll', function() {
+    const t   = document.getElementById('vscroll-track');
+    const max = V_INNER_PX - t.offsetHeight;
+    const ratio = max > 0 ? t.scrollTop / max : 0.5;
+    const delta = (ratio - _lastVScroll) * PAN_V_RANGE;
+    _lastVScroll = ratio;
+
+    // Pan camera and target along world Y axis (scroll down = move down)
+    camera.position.y -= delta;
+    controls.target.y -= delta;
+    controls.update();
+});
+
+// Init scrollbars after DOM is ready
+setTimeout(initScrollbars, 100);
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0x404060);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(500, 800, 500);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.width = 2048;
+dirLight.shadow.mapSize.height = 2048;
+dirLight.shadow.camera.left = -500;
+dirLight.shadow.camera.right = 500;
+dirLight.shadow.camera.top = 500;
+dirLight.shadow.camera.bottom = -500;
+dirLight.shadow.camera.near = 1;
+dirLight.shadow.camera.far = 2000;
+scene.add(dirLight);
+
+const fillLight = new THREE.DirectionalLight(0xccddff, 0.5);
+fillLight.position.set(-300, 200, -300);
+scene.add(fillLight);
+
+// Grid floor (moved to right side)
+let gridHelper = null;
+
+function buildGrid() {
+    if (gridHelper) scene.remove(gridHelper);
+
+    if (rowGeometry.size === 0) return; // no layout yet
+
+    // Compute actual warehouse bounds from rowGeometry
+    let minX = Infinity, maxX = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+
+    rowGeometry.forEach(geo => {
+        const ppl        = geo.palletsPerLevel || 1;
+        const totalSlots = geo.maxBay * ppl;   // same as maxBay when PPL=1
+        const halfW      = CUBE_WIDTH * 0.5;
+
+        if (geo.orientation === 0) {
+            minX = Math.min(minX, geo.xPos);
+            maxX = Math.max(maxX, geo.xPos + totalSlots * BAY_SPACING);
+            minZ = Math.min(minZ, geo.zStart - halfW);
+            maxZ = Math.max(maxZ, geo.zStart + halfW);
+        } else {
+            minX = Math.min(minX, geo.xPos - halfW);
+            maxX = Math.max(maxX, geo.xPos + halfW);
+            minZ = Math.min(minZ, geo.zStart);
+            maxZ = Math.max(maxZ, geo.zStart + totalSlots * BAY_SPACING);
+        }
+    });
+
+    const padding = 30;
+    minX -= padding; maxX += padding;
+    minZ -= padding; maxZ += padding;
+
+    const sizeX = maxX - minX;
+    const sizeZ = maxZ - minZ;
+    const centerX = (minX + maxX) / 2;
+    const centerZ = (minZ + maxZ) / 2;
+
+    // Use a PlaneGeometry outline so we can have non-square dimensions
+    // Build as a LineLoop around the exact footprint
+    const points = [
+        new THREE.Vector3(minX, 0, minZ),
+        new THREE.Vector3(maxX, 0, minZ),
+        new THREE.Vector3(maxX, 0, maxZ),
+        new THREE.Vector3(minX, 0, maxZ),
+        new THREE.Vector3(minX, 0, minZ), // close
+    ];
+    const geo = new THREE.BufferGeometry().setFromPoints(points);
+    const mat = new THREE.LineBasicMaterial({ color: isLightTheme ? 0x8aaac8 : 0x336699, opacity: 0.8, transparent: true });
+    gridHelper = new THREE.Line(geo, mat);
+    gridHelper.position.y = -0.5;
+    scene.add(gridHelper);
+}
+
+
+// ---------------- DATA STRUCTURES ----------------
+
+const customerColors = {};
+const customerCount = {};
+const locationMap = new Map();
+const cubes = [];
+
+let selectedCube = null;
+
+function getCustomerColor(customer) {
+    if (!customer) return EMPTY_COLOR;
+    
+    if (!customerColors[customer]) {
+        let hash = 0;
+        for (let i = 0; i < customer.length; i++) {
+            hash = ((hash << 5) - hash) + customer.charCodeAt(i);
+            hash = hash & hash;
+        }
+        
+        const r = ((hash & 0xFF0000) >> 16) / 255;
+        const g = ((hash & 0x00FF00) >> 8) / 255;
+        const b = (hash & 0x0000FF) / 255;
+        
+        const color = new THREE.Color(r * 0.7 + 0.3, g * 0.7 + 0.3, b * 0.7 + 0.3);
+        customerColors[customer] = color;
+    }
+    
+    return customerColors[customer];
+}
+
+// ---------------- LOCATION LABEL CANVAS ----------------
+
+// ---------------- CREATE CUBE WITH BORDER ----------------
+
+function createRackCube(color, isOccupied, cubeH, cubeW, cubeD) {
+    const h = cubeH || CUBE_HEIGHT;
+    const w = cubeW || CUBE_WIDTH;
+    const d = cubeD || CUBE_DEPTH;
+    const group = new THREE.Group();
+
+    const mainGeo = new THREE.BoxGeometry(w - 0.2, h - 0.2, d - 0.2);
+    const mainMat = new THREE.MeshStandardMaterial({
+        color: isOccupied ? color : 0xffffff,
+        transparent: true,
+        opacity: isOccupied ? 0.95 : 0.0,
+        emissive: isOccupied ? 0x111111 : 0x000000,
+        roughness: 0.4,
+        metalness: 0.1,
+        depthWrite: isOccupied,
+    });
+    const mainCube = new THREE.Mesh(mainGeo, mainMat);
+    mainCube.castShadow = isOccupied;
+    mainCube.receiveShadow = true;
+    group.add(mainCube);
+
+    // Edge outline
+    const edgeMat = new THREE.LineBasicMaterial({ color: 0x888888, transparent: true, opacity: 0.45 });
+    const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(w, h, d));
+    const line = new THREE.LineSegments(edges, edgeMat);
+    group.add(line);
+
+    return group;
+}
+
+
+// ---------------- FLOOR LABEL SYSTEM ----------------
+
+const floorLabels = [];
+
+function createFloorLabel(text, x, z, bgColor, textColor) {
+    const canvas = document.createElement('canvas');
+    const fontSize = 28;
+    // Measure text width first using a temp canvas
+    const tmp = document.createElement('canvas').getContext('2d');
+    tmp.font = `bold ${fontSize}px Arial`;
+    const textW = tmp.measureText(text).width;
+    const padX = 16, padY = 10;
+    canvas.width  = Math.ceil(textW + padX * 2);
+    canvas.height = Math.ceil(fontSize + padY * 2);
+    const ctx = canvas.getContext('2d');
+
+    // Background pill
+    const r = 8;
+    const w = canvas.width, h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = bgColor || 'rgba(30,60,100,0.92)';
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(w-r, 0);
+    ctx.arcTo(w, 0, w, r, r);
+    ctx.lineTo(w, h-r);
+    ctx.arcTo(w, h, w-r, h, r);
+    ctx.lineTo(r, h);
+    ctx.arcTo(0, h, 0, h-r, r);
+    ctx.lineTo(0, r);
+    ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fill();
+
+    // Border
+    ctx.strokeStyle = textColor || '#88ccff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = textColor || '#ffffff';
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, w / 2, h / 2);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const aspect = canvas.width / canvas.height;
+    const planeH = 10;
+    const planeW = aspect * planeH;
+
+    // Visible label mesh only — no click interaction
+    const geo  = new THREE.PlaneGeometry(planeW, planeH);
+    const mat  = new THREE.MeshBasicMaterial({ map: texture, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(x, 0.5, z);
+    return mesh;
+}
+
+function buildLabels() {
+    floorLabels.forEach(l => scene.remove(l));
+    floorLabels.length = 0;
+    // Row labels removed
+}
+
+// ---------------- BUILD RACK FUNCTION ----------------
+
+function buildRack() {
+    cubes.forEach(cube => scene.remove(cube));
+    cubes.length = 0;
+    isolatedRow = null;
+    closeRowPanel();
+    hoverMeshCache = null;  // force hover cache rebuild
+    legendSearch   = '';    // reset search
+    ageFilter      = 'all';
+    document.querySelectorAll('.sc-age-card').forEach(c => c.classList.remove('active'));
+
+    document.getElementById('legend').innerHTML = '<b>📊 Customer Legend</b><hr>';
+    Object.keys(customerCount).forEach(key => delete customerCount[key]);
+
+    let totalOccupied = 0;
+
+    // Helper: place cubes for one row using its own world-space X and Z start.
+    // X and Z come directly from rowGeometry — no area/colIndex calculation.
+    // Y = level * levelSpacing (all racks scaled to same top height)
+    function buildZone(rowName) {
+        const geo = rowGeometry.get(rowName);
+        if (!geo) return;
+
+        const { xPos, zStart, maxBay, maxLevel, palletsPerLevel, orientation, locPattern, type } = geo;
+        const ppl      = palletsPerLevel || 1;
+        const along_x  = (orientation === 0);
+        const isFloor  = (type === 'floor');
+
+        // Dimensions — floor pallets use fixed pallet scale, rack uses dynamic level spacing
+        const spacing  = isFloor ? PALLET_SPACING : BAY_SPACING;
+        const cubeW    = isFloor ? PALLET_W       : CUBE_WIDTH;
+        const levelSpacing = isFloor ? PALLET_HEIGHT : (MAX_LEVEL * LEVEL_SPACING) / maxLevel;
+        const cubeH        = levelSpacing;
+
+        for (let bay = 1; bay <= maxBay; bay++) {
+            for (let level = 1; level <= maxLevel; level++) {
+                for (let pallet = 1; pallet <= ppl; pallet++) {
+
+                    const locationKey = makeLocKey(locPattern, rowName, level, bay, maxBay, pallet, ppl);
+                    if (validLocations.size > 0 && !validLocations.has(locationKey)) continue;
+
+                    const items    = locationMap.get(locationKey);
+                    const customer = items ? items[0].customer : null;
+                    const color    = customer ? getCustomerColor(customer) : EMPTY_COLOR;
+                    if (customer) {
+                        customerCount[customer] = (customerCount[customer] || 0) + 1;
+                        totalOccupied++;
+                    }
+
+                    const slot = (bay - 1) * ppl + pallet;
+                    const cx = along_x ? xPos + slot * spacing : xPos;
+                    const cz = along_x ? zStart                : zStart + slot * spacing;
+
+                    // Floor pallets sit on ground (y = height/2), rack levels stack upward
+                    const yPos = isFloor ? PALLET_HEIGHT / 2 : level * levelSpacing;
+
+                    // Floor pallets: square footprint using PALLET_DEPTH, rack: standard CUBE_DEPTH
+                    const cubeD = isFloor ? PALLET_DEPTH : CUBE_DEPTH;
+                    const cubeGroup = createRackCube(color, !!customer, cubeH, cubeW, cubeD);
+                    if (along_x) cubeGroup.rotation.y = Math.PI / 2;
+                    cubeGroup.position.set(cx, yPos, cz);
+                    cubeGroup.userData = {
+                        location:   locationKey,
+                        customer:   customer || null,
+                        zone:       rowName,
+                        level, bay, pallet,
+                        isOccupied: !!customer,
+                        rowType:    isFloor ? 'floor' : 'zone',
+                        type:       isFloor ? 'floor' : 'rack',
+                    };
+                    scene.add(cubeGroup);
+                    cubes.push(cubeGroup);
+                }
+            }
+        }
+    }
+
+    // ============ BUILD ALL ROWS ============
+    allLayoutRows.forEach(rowName => buildZone(rowName));
+
+    // Update legend, labels, grid
+    updateLegend();
+    buildLabels();
+    buildGrid();
+    buildRowPicker();
+    updateStats();
+    // Reset age filter button UI
+    document.querySelectorAll('.age-filter-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.age === 'all'));
+
+    document.getElementById('status').innerHTML =
+        `<span class="stat-hi">${totalOccupied.toLocaleString()}</span> occupied &nbsp;·&nbsp; ${cubes.length.toLocaleString()} slots`;
+}
+
+// ---------------- UPDATE LEGEND ----------------
+
+let legendMode   = 'customer'; // 'customer' | 'item'
+let legendSearch = '';         // current search filter
+
+function buildItemCount() {
+    // Count unique rack locations per item code (matches customerCount logic)
+    const itemLocs = {}; // itemCode → Set of locKeys
+    locationMap.forEach((items, locKey) => {
+        if (!Array.isArray(items)) return;
+        if (validLocations.size > 0 && !validLocations.has(locKey)) return;
+        items.forEach(item => {
+            const key = item.itemCode || item.itemName || '(no code)';
+            if (!itemLocs[key]) itemLocs[key] = new Set();
+            itemLocs[key].add(locKey);
+        });
+    });
+    // Convert Sets to counts
+    const itemCount = {};
+    Object.entries(itemLocs).forEach(([key, locs]) => {
+        itemCount[key] = locs.size;
+    });
+    return itemCount;
+}
+
+function updateLegend() {
+    const legendDiv      = document.getElementById('legend');
+    const controlsDiv    = document.getElementById('legend-controls');
+
+    const sortedCustomers = Object.entries(customerCount).sort((a, b) => b[1] - a[1]);
+    const hasData = sortedCustomers.length > 0;
+
+    // ── Fixed controls (toggle + count + search) ──────────────
+    controlsDiv.innerHTML = `
+        <div class="legend-header">
+            <div class="legend-toggle-wrap">
+                <button class="legend-toggle-btn ${legendMode==='customer'?'active':''}" id="toggleCustomer">Customer</button>
+                <button class="legend-toggle-btn ${legendMode==='item'?'active':''}" id="toggleItem">Item</button>
+            </div>
+            <span class="legend-count-total" id="legendTotal"></span>
+        </div>
+        <div class="legend-search-wrap">
+            <input id="legend-search" type="text" placeholder="Search…" value="${legendSearch}" class="${legendSearch ? 'has-value' : ''}">
+            <button id="legend-search-clear" style="${legendSearch ? 'display:block' : 'display:none'}">✕</button>
+        </div>`;
+
+    // Bind toggle buttons
+    document.getElementById('toggleCustomer').addEventListener('click', () => {
+        legendMode = 'customer'; legendSearch = ''; updateLegend(); updateResetBtn();
+    });
+    document.getElementById('toggleItem').addEventListener('click', () => {
+        legendMode = 'item'; legendSearch = ''; updateLegend(); updateResetBtn();
+    });
+
+    // Bind search
+    document.getElementById('legend-search').addEventListener('input', e => {
+        legendSearch = e.target.value;
+        const pos = e.target.selectionStart;
+        updateLegend();
+        const el2 = document.getElementById('legend-search');
+        if (el2) { el2.focus(); el2.selectionStart = el2.selectionEnd = pos; }
+    });
+
+    // Bind clear button
+    document.getElementById('legend-search-clear').addEventListener('click', () => {
+        legendSearch = '';
+        updateLegend();
+        document.getElementById('legend-search')?.focus();
+    });
+
+    // ── Scrollable list ────────────────────────────────────────
+    legendDiv.innerHTML = '';
+
+    if (!hasData) {
+        legendDiv.innerHTML += `<div class="legend-empty">Upload inventory CSV<br>to see data</div>`;
+        return;
+    }
+
+
+    if (legendMode === 'customer') {
+        // ── Customer mode ──
+        const filtered = legendSearch
+            ? sortedCustomers.filter(([c]) => c.toLowerCase().includes(legendSearch.toLowerCase()))
+            : sortedCustomers;
+        document.getElementById('legendTotal').textContent = `${filtered.length} customers`;
+
+        filtered.forEach(([customer, count]) => {
+            const row = document.createElement('div');
+            row.className = 'legend-row' + (selectedCustomers.has(customer) ? ' selected' : '');
+
+            const hex = '#' + customerColors[customer].getHexString();
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.backgroundColor = hex;
+            if (selectedCustomers.has(customer)) colorBox.style.boxShadow = `0 0 6px ${hex}`;
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'legend-name';
+            nameSpan.textContent = customer.length > 22 ? customer.substring(0, 20) + '…' : customer;
+            nameSpan.title = customer;
+
+            const countBadge = document.createElement('span');
+            countBadge.className = 'count-badge';
+            countBadge.textContent = count.toLocaleString();
+
+            row.appendChild(colorBox);
+            row.appendChild(nameSpan);
+            row.appendChild(countBadge);
+
+            row.addEventListener('click', () => { highlightCustomer(customer); updateLegend(); });
+            legendDiv.appendChild(row);
+        });
+
+    } else {
+        // ── Item Name mode ──
+        const itemCount = buildItemCount();
+        const sortedItems = Object.entries(itemCount).sort((a, b) => b[1] - a[1]);
+        const filteredItems = legendSearch
+            ? sortedItems.filter(([n]) => n.toLowerCase().includes(legendSearch.toLowerCase()))
+            : sortedItems;
+        document.getElementById('legendTotal').textContent = `${filteredItems.length} items`;
+
+        filteredItems.forEach(([itemName, count]) => {
+            const row = document.createElement('div');
+            row.className = 'legend-row' + (selectedItems.has(itemName) ? ' selected' : '');
+
+            const colorBox = document.createElement('div');
+            colorBox.className = 'color-box';
+            colorBox.style.backgroundColor = selectedItems.has(itemName)
+                ? 'var(--cyan)' : 'var(--border-lit)';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.className = 'legend-name';
+            nameSpan.textContent = itemName.length > 22 ? itemName.substring(0, 20) + '…' : itemName;
+            nameSpan.title = itemName;
+
+            const countBadge = document.createElement('span');
+            countBadge.className = 'count-badge';
+            countBadge.textContent = count.toLocaleString();
+
+            row.appendChild(colorBox);
+            row.appendChild(nameSpan);
+            row.appendChild(countBadge);
+
+            row.addEventListener('click', () => { highlightItem(itemName); updateLegend(); });
+            legendDiv.appendChild(row);
+        });
+    }
+}
+
+// ---------------- STATS PANEL ----------------
+
+let ageFilter = 'all'; // 'all' | '3m' | '6m' | '1y' | '2y' | '2yp'
+
+function parseReceivingDate(dateStr) {
+    if (!dateStr) return null;
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    const d = new Date(+parts[2], +parts[1] - 1, +parts[0]);
+    return isNaN(d) ? null : d;
+}
+
+function getAgeMonths(dateStr) {
+    const d = parseReceivingDate(dateStr);
+    if (!d) return null;
+    return (Date.now() - d) / (1000 * 60 * 60 * 24 * 30.44);
+}
+
+// Returns Set of location keys matching current ageFilter bucket
+function getAgeFilteredLocations() {
+    if (ageFilter === 'all') return null;
+    const locs = new Set();
+    locationMap.forEach((items, locKey) => {
+        if (!Array.isArray(items)) return;
+        if (validLocations.size > 0 && !validLocations.has(locKey)) return;
+        const matches = items.some(item => {
+            const m = getAgeMonths(item.receivingDate);
+            if (m === null) return false;
+            switch (ageFilter) {
+                case '3m':  return m <= 3;
+                case '6m':  return m > 3  && m <= 6;
+                case '1y':  return m > 6  && m <= 12;
+                case '2y':  return m > 12 && m <= 24;
+                case '2yp': return m > 24;
+                default:    return false;
+            }
+        });
+        if (matches) locs.add(locKey);
+    });
+    return locs;
+}
+
+// Single unified highlight function — combines customer, item, and age filters
+function applyAllFilters() {
+    const noCustomer = selectedCustomers.size === 0;
+    const noItem     = selectedItems.size === 0;
+    const noAge      = ageFilter === 'all';
+
+    updateResetBtn();
+
+    // Nothing selected — restore all
+    if (noCustomer && noItem && noAge) {
+        cubes.forEach(cg => {
+            cg.children.forEach(child => {
+                if (child.isMesh) {
+                    child.material.opacity = cg.userData.isOccupied ? 0.95 : 0.0;
+                    child.material.emissive?.setHex(0x000000);
+                } else if (child.isLineSegments) {
+                    child.material.opacity = 0.45;
+                    child.material.color.setHex(0x888888);
+                }
+            });
+        });
+        return;
+    }
+
+    const ageLocs    = noAge  ? null : getAgeFilteredLocations();
+    const itemLocs   = noItem ? null : getItemLocations();
+
+    cubes.forEach(cg => {
+        const loc  = cg.userData.location;
+        const cust = cg.userData.customer;
+
+        // Customer filter: pass if no customer filter OR cube matches selected customer
+        const passCustomer = noCustomer || selectedCustomers.has(cust);
+        // Item filter: pass if no item filter OR location contains selected item
+        const passItem     = noItem     || (itemLocs && itemLocs.has(loc));
+        // Age filter: pass if no age filter OR location has old-enough inventory
+        const passAge      = noAge      || (ageLocs && ageLocs.has(loc));
+
+        // Must pass ALL active filters
+        const isSelected = passCustomer && passItem && passAge && cg.userData.isOccupied;
+
+        cg.children.forEach(child => {
+            if (child.isLineSegments) {
+                child.material.opacity = isSelected ? 0.9 : 0.45;
+                child.material.color.setHex(isSelected ? 0x444444 : 0x888888);
+            } else if (child.isMesh) {
+                if (isSelected) {
+                    child.material.opacity = 1.0;
+                    child.material.emissive?.setHex(0x333333);
+                } else {
+                    child.material.opacity = 0.0;
+                    child.material.emissive?.setHex(0x000000);
+                }
+            }
+        });
+    });
+}
+
+function applyAgeFilter() {
+    applyAllFilters();
+    buildRowPicker();
+}
+
+// Age filter via clickable stat cards
+document.addEventListener('click', e => {
+    const card = e.target.closest('.sc-age-card');
+    if (!card) return;
+    const age = card.dataset.age;
+    // Toggle off if already active
+    if (ageFilter === age) {
+        ageFilter = 'all';
+    } else {
+        ageFilter = age;
+    }
+    // Update active state on all age cards
+    document.querySelectorAll('.sc-age-card').forEach(c =>
+        c.classList.toggle('active', c.dataset.age === ageFilter));
+    applyAgeFilter();
+});
+
+function updateStats() {
+    const totalSlots = cubes.length;
+    const hasCustomerSel = selectedCustomers.size > 0;
+    const hasItemSel     = selectedItems.size > 0;
+    const hasSelection   = hasCustomerSel || hasItemSel;
+
+    const itemLocs = hasItemSel ? getItemLocations() : null;
+
+    function inScope(locKey, custName) {
+        if (!hasSelection) return true;
+        const passCust = !hasCustomerSel || selectedCustomers.has(custName);
+        const passItem = !hasItemSel     || (itemLocs && itemLocs.has(locKey));
+        return passCust && passItem;
+    }
+
+    // Use cubes as ground truth — already filtered by layout + locationMap match
+    const scopedCustomers = new Set();
+    const scopedItemCodes = new Set();
+    const age = { m3: 0, m6: 0, y1: 0, y2: 0, y2p: 0 };
+    let scopedOccupied = 0;
+
+    cubes.forEach(cg => {
+        if (!cg.userData.isOccupied) return;
+        const locKey   = cg.userData.location;
+        const custName = cg.userData.customer;
+        if (!inScope(locKey, custName)) return;
+
+        scopedOccupied++;
+        scopedCustomers.add(custName);
+
+        // Get full item details from locationMap
+        const items = locationMap.get(locKey);
+        if (Array.isArray(items)) {
+            items.forEach(item => {
+                if (item.itemCode) scopedItemCodes.add(item.itemCode);
+            });
+
+            // Age bucket — oldest item
+            let maxMonths = null;
+            items.forEach(item => {
+                const m = getAgeMonths(item.receivingDate);
+                if (m !== null && (maxMonths === null || m > maxMonths)) maxMonths = m;
+            });
+            if (maxMonths !== null) {
+                if      (maxMonths <= 3)  age.m3++;
+                else if (maxMonths <= 6)  age.m6++;
+                else if (maxMonths <= 12) age.y1++;
+                else if (maxMonths <= 24) age.y2++;
+                else                      age.y2p++;
+            }
+        }
+    });
+
+    const util = totalSlots > 0 ? (scopedOccupied / totalSlots * 100).toFixed(1) : '0.0';
+    const hasAge = (age.m3 + age.m6 + age.y1 + age.y2 + age.y2p) > 0;
+
+    document.getElementById('sc-customers').textContent = scopedCustomers.size || '—';
+    document.getElementById('sc-items').textContent     = scopedItemCodes.size > 0 ? scopedItemCodes.size.toLocaleString() : '—';
+    document.getElementById('sc-locations').textContent = totalSlots   > 0 ? totalSlots.toLocaleString() : '—';
+    document.getElementById('sc-occupied').textContent  = scopedOccupied > 0 ? scopedOccupied.toLocaleString() : '—';
+    document.getElementById('sc-util').textContent      = totalSlots   > 0 ? util + '%' : '—';
+
+    document.getElementById('sc-3m').textContent  = hasAge ? age.m3.toLocaleString()  : '—';
+    document.getElementById('sc-6m').textContent  = hasAge ? age.m6.toLocaleString()  : '—';
+    document.getElementById('sc-1y').textContent  = hasAge ? age.y1.toLocaleString()  : '—';
+    document.getElementById('sc-2y').textContent  = hasAge ? age.y2.toLocaleString()  : '—';
+    document.getElementById('sc-2yp').textContent = hasAge ? age.y2p.toLocaleString() : '—';
+}
+
+// ---------------- ROW PICKER PANEL ----------------
+
+function getSelectedRows() {
+    // Returns Set of row names that contain matching cubes, or null if no filter active
+    const hasCustomerSel = selectedCustomers.size > 0;
+    const hasItemSel     = selectedItems.size > 0;
+    const hasAgeSel      = ageFilter !== 'all';
+    if (!hasCustomerSel && !hasItemSel && !hasAgeSel) return null;
+
+    const itemLocs = hasItemSel ? getItemLocations() : null;
+    const ageLocs  = hasAgeSel  ? getAgeFilteredLocations() : null;
+    const rows = new Set();
+
+    cubes.forEach(cg => {
+        if (!cg.userData.isOccupied) return;
+        const passCust = !hasCustomerSel || selectedCustomers.has(cg.userData.customer);
+        const passItem = !hasItemSel     || (itemLocs && itemLocs.has(cg.userData.location));
+        const passAge  = !hasAgeSel      || (ageLocs  && ageLocs.has(cg.userData.location));
+        if (passCust && passItem && passAge) rows.add(cg.userData.zone);
+    });
+    return rows;
+}
+
+function buildRowPicker() {
+    const picker = document.getElementById('row-picker');
+    picker.innerHTML = '';
+
+    const matchedRows = getSelectedRows(); // null = show all
+
+    allLayoutRows.forEach(rowName => {
+        // Hide badge if there's a selection and this row has no match
+        if (matchedRows && !matchedRows.has(rowName)) return;
+
+        const badge = document.createElement('div');
+        badge.className = 'rp-badge' + (isolatedRow === rowName ? ' active' : '');
+        badge.textContent = rowName;
+        badge.title = `Row ${rowName} — click to isolate`;
+        badge.addEventListener('click', () => {
+            if (isolatedRow === rowName) {
+                restoreAllRows();
+            } else {
+                isolateRow(rowName);
+            }
+        });
+        picker.appendChild(badge);
+    });
+}
+
+function updateRowPickerActive() {
+    document.querySelectorAll('.rp-badge').forEach(b => {
+        b.classList.toggle('active', b.textContent === isolatedRow);
+    });
+}
+
+
+let isolatedRow = null; // currently isolated row name, or null
+
+function isolateRow(rowName) {
+    isolatedRow = rowName;
+
+    // 3D: fade all cubes not in this row
+    cubes.forEach(cg => {
+        const inRow = cg.userData.zone === rowName;
+        cg.children.forEach(child => {
+            if (child.isMesh) {
+                child.material.opacity = inRow
+                    ? (cg.userData.isOccupied ? 0.95 : 0.0)
+                    : 0.04;
+                child.material.emissive?.setHex(0x000000);
+            } else if (child.isLineSegments) {
+                child.material.opacity = inRow ? 0.55 : 0.06;
+            }
+        });
+        cg.visible = true;
+    });
+
+    // Open 2D panel
+    openRowPanel(rowName);
+    updateRowPickerActive();
+}
+
+function restoreAllRows() {
+    isolatedRow = null;
+    // Reapply any active customer/item/age filter instead of resetting to full view
+    applyAllFilters();
+    closeRowPanel();
+    updateRowPickerActive();
+}
+
+function openRowPanel(rowName) {
+    const geo = rowGeometry.get(rowName);
+    if (!geo) return;
+
+    const { maxBay, maxLevel, palletsPerLevel, locPattern } = geo;
+    const ppl        = palletsPerLevel || 1;
+    const totalSlots = maxBay * ppl;
+
+    // Build location→customer map for this row
+    const locToCustomer = new Map();
+    // Build locToCustomer — respecting active customer/item/age filter
+    const hasCustomerSel = selectedCustomers.size > 0;
+    const hasItemSel     = selectedItems.size > 0;
+    const hasAgeSel      = ageFilter !== 'all';
+    const itemLocs       = hasItemSel ? getItemLocations()        : null;
+    const ageLocs        = hasAgeSel  ? getAgeFilteredLocations() : null;
+
+    cubes.forEach(cg => {
+        if (cg.userData.zone === rowName) {
+            const items    = locationMap.get(cg.userData.location);
+            const customer = items ? items[0].customer : cg.userData.customer;
+
+            const passCust   = !hasCustomerSel || selectedCustomers.has(customer);
+            const passItem   = !hasItemSel     || (itemLocs && itemLocs.has(cg.userData.location));
+            const passAge    = !hasAgeSel      || (ageLocs  && ageLocs.has(cg.userData.location));
+            const passFilter = passCust && passItem && passAge;
+
+            locToCustomer.set(cg.userData.location, {
+                customer:   passFilter ? customer : null,
+                isOccupied: cg.userData.isOccupied && passFilter,
+            });
+        }
+    });
+
+    // Header
+    document.getElementById('row-panel-title').textContent = `ROW  ${rowName}`;
+    document.getElementById('row-panel-meta').textContent  =
+        `${maxLevel} levels · ${maxBay} bays · ${ppl} pallet${ppl>1?'s':''}/bay · ${totalSlots * maxLevel} total slots`;
+
+    const grid = document.getElementById('row-panel-grid');
+    grid.innerHTML = '';
+
+    // Bay header row
+    const bayHdr = document.createElement('div');
+    bayHdr.className = 'rp-bay-labels';
+    for (let bay = 1; bay <= maxBay; bay++) {
+        for (let p = 1; p <= ppl; p++) {
+            const bl = document.createElement('div');
+            bl.className = 'rp-bay-label';
+            bl.textContent = ppl > 1 ? `B${bay}-${p}` : `B${bay}`;
+            bayHdr.appendChild(bl);
+        }
+    }
+    grid.appendChild(bayHdr);
+
+    // Level rows — top level first (highest level at top)
+    for (let lv = maxLevel; lv >= 1; lv--) {
+        const row = document.createElement('div');
+        row.className = 'rp-level-row';
+
+        const lvLabel = document.createElement('div');
+        lvLabel.className = 'rp-level-label';
+        lvLabel.textContent = `L${lv}`;
+        row.appendChild(lvLabel);
+
+        for (let bay = 1; bay <= maxBay; bay++) {
+            for (let p = 1; p <= ppl; p++) {
+                const locKey = makeLocKey(locPattern, rowName, lv, bay, maxBay, p, ppl);
+                const info   = locToCustomer.get(locKey);
+                const occ    = info?.isOccupied;
+                const cust   = info?.customer;
+
+                const cell   = document.createElement('div');
+                cell.className = occ ? 'rp-cell occupied' : 'rp-cell empty';
+                cell.title     = locKey + (cust ? `\n${cust}` : '');
+                cell.style.cursor = 'pointer';
+                cell.addEventListener('click', () => openLocModal(locKey));
+
+                // Item count badge (top-right)
+                const items = locationMap.get(locKey);
+                const itemCount = Array.isArray(items) ? items.length : 0;
+                if (itemCount > 1) {
+                    const countBadge = document.createElement('span');
+                    countBadge.className = 'rp-count';
+                    countBadge.textContent = itemCount;
+                    cell.appendChild(countBadge);
+                }
+
+                if (occ) {
+                    // Use exact same THREE.Color as the 3D cube
+                    const threeColor = getCustomerColor(cust);
+                    const hex = '#' + threeColor.getHexString();
+                    cell.style.background = hex;
+                    // Auto text contrast
+                    const r = threeColor.r * 255,
+                          g = threeColor.g * 255,
+                          b = threeColor.b * 255;
+                    const lum = 0.299*r + 0.587*g + 0.114*b;
+                    cell.style.color = lum > 140 ? '#000' : '#fff';
+                }
+
+                const locSpan = document.createElement('div');
+                locSpan.className = 'rp-loc';
+                locSpan.textContent = locKey;
+                cell.appendChild(locSpan);
+
+                if (cust) {
+                    const custSpan = document.createElement('div');
+                    custSpan.className = 'rp-cust';
+                    custSpan.textContent = cust.length > 10 ? cust.slice(0,9) + '…' : cust;
+                    cell.appendChild(custSpan);
+                }
+
+                row.appendChild(cell);
+            }
+        }
+        grid.appendChild(row);
+    }
+
+    document.getElementById('row-panel-backdrop').style.display = 'block';
+    document.getElementById('row-panel').style.display           = 'flex';
+}
+
+function closeRowPanel() {
+    document.getElementById('row-panel-backdrop').style.display = 'none';
+    document.getElementById('row-panel').style.display          = 'none';
+}
+
+// Close button
+document.getElementById('row-panel-close').addEventListener('click', restoreAllRows);
+
+// Backdrop click closes
+document.getElementById('row-panel-backdrop').addEventListener('click', restoreAllRows);
+
+// Escape key closes
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && isolatedRow) restoreAllRows();
+});
+
+
+// ---------------- LOCATION DETAIL MODAL ----------------
+
+function openLocModal(locationKey) {
+    const items = locationMap.get(locationKey); // array or undefined
+
+    document.getElementById('loc-modal-title').textContent = `Location: ${locationKey}`;
+
+    const body = document.getElementById('loc-modal-body');
+    body.innerHTML = '';
+
+    if (!items || items.length === 0) {
+        body.innerHTML = `<div class="loc-empty-msg">No inventory data for this location.</div>`;
+    } else {
+        items.forEach((item, idx) => {
+            const card = document.createElement('div');
+            card.className = 'loc-item-card';
+
+            const flagClass = item.damageFlag?.toLowerCase() === 'good' ? 'good'
+                            : item.damageFlag?.toLowerCase() === 'held' ? 'held'
+                            : item.damageFlag ? 'damaged' : '';
+
+            card.innerHTML = `
+                <div class="loc-item-title">Item ${idx + 1}</div>
+                <div class="loc-item-grid">
+                    <div class="loc-item-field" style="grid-column:1/-1">
+                        <span class="loc-item-label">Owner Name</span>
+                        <span class="loc-item-value">${item.customer || '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Item Code</span>
+                        <span class="loc-item-value">${item.itemCode || '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Item Name</span>
+                        <span class="loc-item-value">${item.itemName || '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Quantity</span>
+                        <span class="loc-item-value">${item.stock ? item.stock + ' ' + (item.unit || '') : '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Receive Date</span>
+                        <span class="loc-item-value">${item.receivingDate || '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Lot Number</span>
+                        <span class="loc-item-value">${item.lotNumber || '—'}</span>
+                    </div>
+                    <div class="loc-item-field">
+                        <span class="loc-item-label">Damage Flag</span>
+                        <span class="loc-item-value ${flagClass}">${item.damageFlag || '—'}</span>
+                    </div>
+                </div>`;
+            body.appendChild(card);
+        });
+
+        // ── Summary card — only show when more than 1 item ──
+        if (items.length > 1) {
+        // Total quantity (sum all numeric stock values)
+        let totalQty = 0;
+        let qtyUnit  = '';
+        let oldestDate = null;
+        const damageSet = new Set();
+        const customerSet = new Set();
+
+        items.forEach(item => {
+            const qty = parseFloat(item.stock);
+            if (!isNaN(qty)) { totalQty += qty; qtyUnit = item.unit || ''; }
+            if (item.damageFlag) damageSet.add(item.damageFlag);
+            if (item.customer)   customerSet.add(item.customer);
+
+            const m = getAgeMonths(item.receivingDate);
+            if (m !== null) {
+                if (oldestDate === null || m > oldestDate.months) {
+                    oldestDate = { months: m, date: item.receivingDate };
+                }
+            }
+        });
+
+        // Damage summary
+        const hasHeld    = [...damageSet].some(f => f.toLowerCase() === 'held');
+        const hasDamaged = [...damageSet].some(f => f.toLowerCase() !== 'good' && f.toLowerCase() !== 'held' && f);
+        const damageLabel = hasDamaged ? 'Damaged' : hasHeld ? 'Held' : 'Good';
+        const damageClass = hasDamaged ? 'damaged' : hasHeld ? 'held' : 'good';
+
+        // Age label
+        const ageLabel = oldestDate
+            ? (() => {
+                const m = oldestDate.months;
+                if (m <= 3) return '0–3 Months';
+                if (m <= 6) return '3–6 Months';
+                if (m <= 12) return '6–12 Months';
+                if (m <= 24) return '1–2 Years';
+                return '> 2 Years';
+              })()
+            : '—';
+
+        const summary = document.createElement('div');
+        summary.className = 'loc-summary-card';
+        summary.innerHTML = `
+            <div class="loc-summary-title">📦 Summary</div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Total Items</span>
+                <span class="loc-item-value">${items.length}</span>
+            </div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Total Quantity</span>
+                <span class="loc-item-value">${totalQty > 0 ? totalQty.toLocaleString() + ' ' + qtyUnit : '—'}</span>
+            </div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Oldest Receive</span>
+                <span class="loc-item-value">${oldestDate ? oldestDate.date : '—'}</span>
+            </div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Inventory Age</span>
+                <span class="loc-item-value">${ageLabel}</span>
+            </div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Damage Status</span>
+                <span class="loc-item-value ${damageClass}">${damageLabel}</span>
+            </div>
+            <div class="loc-item-field">
+                <span class="loc-item-label">Customers</span>
+                <span class="loc-item-value">${customerSet.size}</span>
+            </div>`;
+        body.appendChild(summary);
+        } // end if items.length > 1
+    }
+
+    document.getElementById('loc-modal-backdrop').style.display = 'block';
+    document.getElementById('loc-modal').style.display           = 'flex';
+}
+
+function closeLocModal() {
+    document.getElementById('loc-modal-backdrop').style.display = 'none';
+    document.getElementById('loc-modal').style.display          = 'none';
+}
+
+document.getElementById('loc-modal-close').addEventListener('click', closeLocModal);
+document.getElementById('loc-modal-backdrop').addEventListener('click', closeLocModal);
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLocModal();
+});
+
+const selectedCustomers = new Set();
+const selectedItems     = new Set(); // item names
+
+// Build a Set of location keys that contain any of the selectedItems
+function getItemLocations() {
+    const locs = new Set();
+    locationMap.forEach((items, locKey) => {
+        if (!Array.isArray(items)) return;
+        if (validLocations.size > 0 && !validLocations.has(locKey)) return;
+        items.forEach(item => {
+            const key = item.itemCode || item.itemName || '';
+            if (selectedItems.has(key)) locs.add(locKey);
+        });
+    });
+    return locs;
+}
+
+function updateHighlights() {
+    applyAllFilters();
+}
+
+function highlightCustomer(customer) {
+    selectedItems.clear();
+    if (selectedCustomers.has(customer)) {
+        selectedCustomers.delete(customer);
+    } else {
+        selectedCustomers.add(customer);
+    }
+    updateHighlights();
+    updateStats();
+    buildRowPicker();
+}
+
+function highlightItem(itemName) {
+    selectedCustomers.clear();
+    if (selectedItems.has(itemName)) {
+        selectedItems.delete(itemName);
+    } else {
+        selectedItems.add(itemName);
+    }
+    updateHighlights();
+    updateStats();
+    buildRowPicker();
+}
+
+window.resetHighlight = function() {
+    selectedCustomers.clear();
+    selectedItems.clear();
+    legendSearch = '';
+    ageFilter = 'all';
+    document.querySelectorAll('.sc-age-card').forEach(c => c.classList.remove('active'));
+    updateLegend();
+    applyAllFilters();
+    updateStats();
+    buildRowPicker();
+};
+
+// ---------------- CLICK INTERACTION ----------------
+
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+
+// reset button handler
+const resetBtn = document.getElementById('resetBtn');
+if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+        if (typeof window.resetHighlight === 'function') {
+            window.resetHighlight();
+        }
+    });
+}
+
+window.addEventListener('click', (event) => {
+    // Skip if click was on the 2D panel or sidebar
+    if (event.target.closest('#row-panel, #row-panel-backdrop, #sidebar')) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+
+    // Only process clicks inside the canvas
+    if (event.clientX < rect.left || event.clientX > rect.right ||
+        event.clientY < rect.top  || event.clientY > rect.bottom) return;
+
+    mouse.x =  ((event.clientX - rect.left) / rect.width)  * 2 - 1;
+    mouse.y = -((event.clientY - rect.top)  / rect.height) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    // Check cubes
+    const allMeshes = [];
+    cubes.forEach(cubeGroup => {
+        cubeGroup.children.forEach(child => {
+            if (child.isMesh) allMeshes.push(child);
+        });
+    });
+
+    const intersects = raycaster.intersectObjects(allMeshes);
+
+    if (intersects.length > 0) {
+        const mesh = intersects[0].object;
+        cubes.forEach(cg => {
+            cg.children.forEach(child => {
+                if (child.isMesh) child.material.emissive?.setHex(0x000000);
+            });
+        });
+        if (mesh.material.emissive) mesh.material.emissive.setHex(0x444444);
+    }
+});
+
+// ---------------- LAYOUT TEMPLATE PARSING ----------------
+// Reads Warehouse_Layout_Template.xlsx:
+//   • Layout Config sheet → rebuilds layout structure
+//   • Generates all valid locations automatically from maxBays × maxLevels
+
+function parseLayoutTemplate(file) {
+    document.getElementById('status').innerHTML = '⏳ Parsing Layout Template…';
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data     = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // ── Read Layout Config sheet ──────────────────────────
+            const cfgSheet = workbook.Sheets['Layout Config'];
+            if (!cfgSheet) throw new Error("Sheet 'Layout Config' not found");
+
+            const cfgRows = XLSX.utils.sheet_to_json(cfgSheet, { header: 1, defval: null });
+            const layoutRows = [];
+
+            // New column order: Row Name | X Position | Z Start | Aisle Group | Aisle Side | Max Bays | Max Levels | Notes
+            for (let r = 2; r < cfgRows.length; r++) {
+                const row = cfgRows[r];
+                if (!row[0] || row[1] === null || row[1] === undefined) continue;
+                const rowName = String(row[0]).trim();
+                if (!rowName) continue;
+                layoutRows.push({
+                    rowName,
+                    xPos:            Number(row[1]),
+                    zStart:          Number(row[2]),
+                    aisleGroup:      row[3] ? String(row[3]).trim() : rowName,
+                    aisleSide:       row[4] ? String(row[4]).trim() : 'Single',
+                    maxBays:         Number(row[5])  || 1,
+                    maxLevels:       Number(row[6])  || 1,
+                    orientation:     (row[7] !== null && row[7] !== undefined) ? Number(row[7]) : 90,
+                    locPattern:      (row[8] !== null && row[8] !== undefined) ? String(row[8]).trim() : DEFAULT_LOC_PATTERN,
+                    palletsPerLevel: (row[9] !== null && row[9] !== undefined && Number(row[9]) > 0) ? Number(row[9]) : 1,
+                    type:            (row[10] !== null && row[10] !== undefined) ? String(row[10]).trim().toLowerCase() : 'rack',
+                });
+            }
+
+            if (layoutRows.length === 0) throw new Error('No valid layout rows found');
+
+            // ── Rebuild layout ────────────────────────────────────
+            buildLayoutFromConfig(layoutRows);
+
+            // ── Generate validLocations from layout ──
+            validLocations.clear();
+            rowGeometry.forEach((geo, rowName) => {
+                const ppl = geo.palletsPerLevel || 1;
+                for (let lv = 1; lv <= geo.maxLevel; lv++)
+                    for (let bay = 1; bay <= geo.maxBay; bay++)
+                        for (let pallet = 1; pallet <= ppl; pallet++)
+                            validLocations.add(makeLocKey(geo.locPattern, rowName, lv, bay, geo.maxBay, pallet, ppl));
+            });
+
+            document.getElementById('layoutCard').classList.add('loaded');
+            document.getElementById('layoutFileName').textContent = file.name;
+            // Locations auto-generated from layout
+
+            document.getElementById('status').innerHTML =
+                `<span class="stat-ok">✓</span> Layout loaded — <span class="stat-hi">${layoutRows.length}</span> rows · <span class="stat-hi">${validLocations.size.toLocaleString()}</span> locations generated`;
+
+            buildRack();
+        } catch(err) {
+            console.error('Layout template error:', err);
+            document.getElementById('status').innerHTML =
+                `<span style="color:var(--red)">✕ Layout error: ${err.message}</span>`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+// ---------------- LOCATIONS XLSX PARSING ----------------
+
+function parseLocationsXlsx(file) {
+    document.getElementById('status').innerHTML = '⏳ Parsing Locations.xlsx…';
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+            
+            validLocations.clear();
+            rowMaxData.clear();
+            
+            // Collect per-row stats while scanning all cells
+            const rowStats = new Map(); // rowName -> { maxBay, maxLevel }
+            
+            // Skip header row (index 0)
+            for (let r = 1; r < rows.length; r++) {
+                for (let c = 0; c < rows[r].length; c++) {
+                    const cell = rows[r][c];
+                    if (!cell || typeof cell !== 'string') continue;
+                    const val = cell.trim();
+                    if (!val || !val.includes('-')) continue;
+                    
+                    // Parse location: last part = bay, second-to-last = level, rest = row name
+                    const parts = val.split('-');
+                    if (parts.length < 3) continue;
+                    
+                    const bay = parseInt(parts[parts.length - 1]);
+                    const level = parseInt(parts[parts.length - 2]);
+                    if (isNaN(bay) || isNaN(level)) continue;
+                    
+                    const rowName = parts.slice(0, parts.length - 2).join('-');
+                    if (!rowName) continue;
+                    
+                    validLocations.add(val);
+                    
+                    if (!rowStats.has(rowName)) rowStats.set(rowName, { maxBay: 0, maxLevel: 0 });
+                    const rs = rowStats.get(rowName);
+                    if (bay > rs.maxBay) rs.maxBay = bay;
+                    if (level > rs.maxLevel) rs.maxLevel = level;
+                }
+            }
+            
+            rowStats.forEach((stats, rowName) => {
+                rowMaxData.set(rowName, stats);
+            });
+            
+            console.log(`Parsed ${validLocations.size} valid locations across ${rowMaxData.size} rows`);
+            document.getElementById('status').innerHTML = 
+                `<span class="stat-ok">✓</span> <span class="stat-hi">${validLocations.size.toLocaleString()}</span> slots · <span class="stat-hi">${rowMaxData.size}</span> rows loaded`;
+            
+            buildRack();
+        } catch (err) {
+            console.error('XLSX parsing error:', err);
+            document.getElementById('status').innerHTML = `<span style="color:var(--red)">✕ XLSX error: ${err.message}</span>`;
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+document.getElementById('layoutCard').addEventListener('click', () => {
+    document.getElementById('layoutFile').click();
+});
+
+document.getElementById('layoutFile').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    parseLayoutTemplate(file);
+});
+
+// Locations.xlsx upload removed — locations auto-generated from layout template
+
+// ---------------- CSV PARSING ----------------
+
+function parseCSV(file) {
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+            locationMap.clear();
+            let totalRows = 0;
+
+            results.data.forEach(row => {
+                const location  = (row['Location'] || '').trim();
+                const ownerName = (row['Owner Name'] || '').trim();
+                if (!location || !ownerName || location.includes('TEMP')) return;
+
+                const item = {
+                    customer:      ownerName,
+                    itemCode:      (row['Item Code']      || '').trim(),
+                    itemName:      (row['Item Name']      || '').trim(),
+                    stock:         (row['Stock']          || '').trim(),
+                    unit:          (row['Unit']           || '').trim(),
+                    receivingDate: (row['Receiving Date'] || '').trim(),
+                    lotNumber:     (row['Lot Number']     || '').trim(),
+                    damageFlag:    (row['Damage Flag']    || '').trim(),
+                };
+
+                if (!locationMap.has(location)) locationMap.set(location, []);
+                locationMap.get(location).push(item);
+                totalRows++;
+            });
+
+            console.log(`Parsed ${locationMap.size} unique locations, ${totalRows} items`);
+            document.getElementById('status').innerHTML =
+                `<span class="stat-ok">✓</span> <span class="stat-hi">${locationMap.size.toLocaleString()}</span> locations · <span class="stat-hi">${totalRows.toLocaleString()}</span> items loaded`;
+
+            buildRack();
+        },
+        error: function(error) {
+            console.error('CSV parsing error:', error);
+            document.getElementById('status').innerHTML = `<span style="color:var(--red)">✕ CSV parse error</span>`;
+        }
+    });
+}
+
+// ---------------- FILE UPLOAD ----------------
+
+document.getElementById('csvCard').addEventListener('click', () => {
+    document.getElementById('csvFile').click();
+});
+
+document.getElementById('csvFile').addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    document.getElementById('fileName').textContent = file.name;
+    document.getElementById('csvCard').classList.add('loaded');
+    document.getElementById('status').textContent = '⏳ Parsing CSV…';
+    parseCSV(file);
+});
+
+// ---------------- ANIMATION ----------------
+
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+
+// ---------------- INITIAL BUILD FROM EMBEDDED DATA ----------------
+
+// ---------------- STARTUP ----------------
+// App starts empty — upload Layout Template to build the warehouse
+
+function loadDemoData(data) {
+    try {
+        // ── Layout ──────────────────────────────────────────────
+        buildLayoutFromConfig(data.layout);
+
+        validLocations.clear();
+        rowGeometry.forEach((geo, rowName) => {
+            const ppl = geo.palletsPerLevel || 1;
+            for (let lv = 1; lv <= geo.maxLevel; lv++)
+                for (let bay = 1; bay <= geo.maxBay; bay++)
+                    for (let pallet = 1; pallet <= ppl; pallet++)
+                        validLocations.add(makeLocKey(geo.locPattern, rowName, lv, bay, geo.maxBay, pallet, ppl));
+        });
+
+        document.getElementById('layoutCard').classList.add('loaded');
+        document.getElementById('layoutFileName').textContent = 'DEMO_LAYOUT.xlsx';
+        // Locations auto-generated from layout
+
+        // ── Inventory ───────────────────────────────────────────
+        locationMap.clear();
+        data.inventory.forEach(item => {
+            const loc = item.location;
+            if (!locationMap.has(loc)) locationMap.set(loc, []);
+            locationMap.get(loc).push(item);
+        });
+
+        document.getElementById('csvCard').classList.add('loaded');
+        document.getElementById('fileName').textContent = 'DEMO_INVENTORY.csv';
+
+        buildRack();
+
+        document.getElementById('status').innerHTML =
+            `<span class="stat-ok">✓</span> Demo data loaded — <span class="stat-hi">${data.layout.length}</span> rows · <span class="stat-hi">${validLocations.size.toLocaleString()}</span> locations · <span class="stat-hi">${data.inventory.length.toLocaleString()}</span> items`;
+
+        // Show demo notice banner in viewport, fade out after 5 seconds
+        const notice = document.getElementById('demo-notice');
+        notice.style.display = 'flex';
+        setTimeout(() => {
+            notice.classList.add('fade-out');
+            setTimeout(() => { notice.style.display = 'none'; }, 1200);
+        }, 8000);
+
+    } catch(err) {
+        console.error('Demo data load error:', err);
+        document.getElementById('status').innerHTML =
+            `<span style="color:var(--red)">✕ Demo load error: ${err.message}</span>`;
+    }
+}
+
+function initApp() {
+    document.getElementById('status').innerHTML = '⏳ Loading demo data…';
+
+    // Load demo_data.json from same directory (place both files in the same folder)
+    fetch('demo_data.json')
+        .then(r => {
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            return r.json();
+        })
+        .then(data => loadDemoData(data))
+        .catch(err => {
+            console.warn('demo_data.json not found, starting empty:', err.message);
+            document.getElementById('status').innerHTML =
+                '📂 Upload <span class="stat-hi">Layout Template</span> to get started';
+        });
+}
+
+initApp();
+
+// ---------------- THEME TOGGLE ----------------
+
+const DARK_SCENE  = 0x11151c;
+const LIGHT_SCENE = 0xd0dce8;
+const DARK_GRID   = [0x336699, 0x224466];
+const LIGHT_GRID  = [0x8aaac8, 0xb0c8dc];
+
+let isLightTheme = false;
+
+function updateResetBtn() {
+    const btn   = document.getElementById('resetBtn');
+    const label = document.getElementById('resetBtnLabel');
+    const hasSelection = selectedCustomers.size > 0 || selectedItems.size > 0 || ageFilter !== 'all';
+
+    if (hasSelection) {
+        btn.classList.remove('no-selection');
+        label.textContent = 'Clear Selection';
+    } else {
+        btn.classList.add('no-selection');
+        label.textContent = legendMode === 'item' ? 'All Items' : 'All Customers';
+    }
+}
+
+function updateThemeLabels() {
+    document.getElementById('label-theme').textContent = isLightTheme ? 'Light' : 'Dark';
+}
+updateThemeLabels();
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+    isLightTheme = !isLightTheme;
+    document.body.classList.toggle('light', isLightTheme);
+    updateThemeLabels();
+
+    // Update 3D scene background
+    scene.background = new THREE.Color(isLightTheme ? LIGHT_SCENE : DARK_SCENE);
+
+    // Update grid line color
+    if (gridHelper) {
+        gridHelper.material.color.setHex(isLightTheme ? 0x8aaac8 : 0x336699);
+    }
+});
+
+console.log('DEMO Warehouse Rack Simulator initialized');
+
+// ---------------- HOVER TOOLTIP ----------------
+
+const tooltip     = document.getElementById('hover-tooltip');
+const ttLocation  = tooltip.querySelector('.tt-location');
+const ttCustomer  = tooltip.querySelector('.tt-customer');
+const hoverRay    = new THREE.Raycaster();
+const hoverMouse  = new THREE.Vector2();
+
+// Collect ALL main meshes for hover raycasting (occupied + empty)
+function getHoverMeshes() {
+    const out = [];
+    cubes.forEach(cg => {
+        const m = cg.children.find(c => c.isMesh);
+        if (m) out.push(m);
+    });
+    return out;
+}
+
+let hoverMeshCache = null;
+let lastBuildCount = 0;
+
+const canvas = renderer.domElement;
+
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    hoverMouse.x =  ((e.clientX - rect.left)  / rect.width)  * 2 - 1;
+    hoverMouse.y = -((e.clientY - rect.top)   / rect.height) * 2 + 1;
+
+    hoverRay.setFromCamera(hoverMouse, camera);
+
+    // Rebuild mesh cache only when rack is rebuilt
+    if (!hoverMeshCache || cubes.length !== lastBuildCount) {
+        hoverMeshCache = getHoverMeshes();
+        lastBuildCount = cubes.length;
+    }
+
+    const hits = hoverRay.intersectObjects(hoverMeshCache);
+
+    if (hits.length > 0) {
+        // Prefer the first occupied hit; fall back to first hit (empty slot)
+        const hit = hits.find(h => h.object.parent.userData.isOccupied) || hits[0];
+        const data = hit.object.parent.userData;
+        ttLocation.textContent = data.location || '';
+        ttCustomer.textContent = data.customer  || 'Empty';
+        ttCustomer.className   = data.customer  ? 'tt-customer' : 'tt-empty';
+
+        // Position tooltip near cursor, avoid screen edge
+        const tx = Math.min(e.clientX + 14, window.innerWidth  - 230);
+        const ty = Math.min(e.clientY + 14, window.innerHeight - 60);
+        tooltip.style.left    = tx + 'px';
+        tooltip.style.top     = ty + 'px';
+        tooltip.style.display = 'flex';
+    } else {
+        tooltip.style.display = 'none';
+    }
+});
+
+canvas.addEventListener('mouseleave', () => {
+    tooltip.style.display = 'none';
+});
+
+</script>
+<!-- Stats panel top-right -->
+<div id="stats-panel">
+    <div class="stats-row">
+        <div class="stat-card"><span class="sc-label">Customers</span><span class="sc-value" id="sc-customers">—</span></div>
+        <div class="stat-card"><span class="sc-label">Item Codes</span><span class="sc-value" id="sc-items">—</span></div>
+        <div class="stat-card"><span class="sc-label">Locations</span><span class="sc-value" id="sc-locations">—</span></div>
+        <div class="stat-card"><span class="sc-label">Occupied</span><span class="sc-value" id="sc-occupied">—</span></div>
+        <div class="stat-card util"><span class="sc-label">Utilization</span><span class="sc-value" id="sc-util">—</span></div>
+    </div>
+    <div class="stats-row">
+        <div class="stat-card age-hdr"><span class="sc-label">Inventory Age<br>(Locations)</span></div>
+        <div class="stat-card age-3m sc-age-card" data-age="3m" title="Click to filter 0–3 months"><span class="sc-label">0 – 3 Months</span><span class="sc-value" id="sc-3m">—</span></div>
+        <div class="stat-card age-6m sc-age-card" data-age="6m" title="Click to filter 3–6 months"><span class="sc-label">3 – 6 Months</span><span class="sc-value" id="sc-6m">—</span></div>
+        <div class="stat-card age-1y sc-age-card" data-age="1y" title="Click to filter 6–12 months"><span class="sc-label">6 – 12 Months</span><span class="sc-value" id="sc-1y">—</span></div>
+        <div class="stat-card age-2y sc-age-card" data-age="2y" title="Click to filter 1–2 years"><span class="sc-label">1 – 2 Years</span><span class="sc-value" id="sc-2y">—</span></div>
+        <div class="stat-card age-2yp sc-age-card" data-age="2yp" title="Click to filter over 2 years"><span class="sc-label">&gt; 2 Years</span><span class="sc-value" id="sc-2yp">—</span></div>
+    </div>
+</div>
+
+<!-- Usage guide bottom-left -->
+<div id="usage-guide">
+    <div class="ug-item"><span class="ug-key">drag</span> rotate</div>
+    <div class="ug-sep">·</div>
+    <div class="ug-item"><span class="ug-key">scroll</span> zoom</div>
+    <div class="ug-sep">·</div>
+    <div class="ug-item"><span class="ug-key">right-drag</span> pan</div>
+    <div class="ug-sep">·</div>
+    <div class="ug-item"><span class="ug-key">click label</span> isolate row</div>
+</div>
+
+<!-- Demo notice banner -->
+<div id="demo-notice">
+    <div class="dn-title">⚠ Sample Data</div>
+    <div class="dn-text">This layout and inventory is for demo purposes only.<br>Upload your own files in the sidebar to visualize your warehouse.</div>
+</div>
+
+<!-- Viewport top-left label -->
+<!-- TEMP CHANGE START — revert to: "DEMO LOGISTICS" / "Developed by Komsan Kongsuwan" / "komsan.kongsuwan@gmail.com" / "+66-81-723-9680" -->
+<div id="viewport-label">
+    <span class="vp-text">SUZUYO DISTRIBUTION CENTER</span>
+    <span class="vp-sub" style="font-size:11px;opacity:0.75;font-family:'DM Mono',monospace;margin-left:10px;letter-spacing:0.04em;">Project CAH Thailand Centralized Warehouse</span>
+</div>
+
+<!-- Developer credit -->
+<div id="dev-credit">
+    <span class="dev-line">IT Department</span>
+</div>
+<!-- TEMP CHANGE END -->
+
+</body>
+</html>
