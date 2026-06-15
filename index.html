@@ -1301,7 +1301,7 @@ body.light .loc-summary-title { color: #0f2a42; }
         <div class="upload-card" id="csvCard">
             <div class="upload-card-icon">📋</div>
             <div class="upload-card-info">
-                <div class="upload-card-label">DEMO Inventory</div>
+                <div class="upload-card-label">Inventory Data</div>
                 <div class="upload-card-filename" id="fileName">Click to load .csv</div>
             </div>
             <div class="upload-card-status"></div>
@@ -6438,8 +6438,8 @@ function loadDemoData(data) {
 }
 
 // Files the app auto-loads on startup (must sit next to rack.html on the server / GitHub Pages).
-const AUTOLOAD_LAYOUT = 'Warehouse_Layout_CAH.xlsx';
-const AUTOLOAD_CSV    = 'DATA_SIM_CAH.csv';
+const AUTOLOAD_LAYOUT = 'Demo_Layout.xlsx';
+const AUTOLOAD_CSV    = 'Demo_Inventory.csv';
 
 async function initApp() {
     document.getElementById('status').innerHTML = '⏳ Loading layout…';
@@ -6560,17 +6560,15 @@ console.log('DEMO Warehouse Rack Simulator initialized');
 </div>
 
 <!-- Viewport top-left label -->
-<!-- TEMP CHANGE START — revert to: "DEMO LOGISTICS" / "Developed by Komsan Kongsuwan" / "komsan.kongsuwan@gmail.com" / "+66-81-723-9680" -->
 <div id="viewport-label">
-    <span class="vp-text">SUZUYO DISTRIBUTION CENTER</span>
-    <span class="vp-sub" style="font-size:11px;opacity:0.75;font-family:'DM Mono',monospace;margin-left:10px;letter-spacing:0.04em;">Project CAH Thailand Centralized Warehouse</span>
+    <span class="vp-text">DEMO LOGISTICS</span>
 </div>
 
 <!-- Developer credit -->
 <div id="dev-credit">
-    <span class="dev-line">IT Department</span>
+    <span class="dev-line">Developed by Komsan Kongsuwan</span>
+    <span class="dev-line"><a href="mailto:komsan.kongsuwan@gmail.com" style="color:inherit;text-decoration:none;">komsan.kongsuwan@gmail.com</a> &middot; <a href="tel:+66817239680" style="color:inherit;text-decoration:none;">+66-81-723-9680</a></span>
 </div>
-<!-- TEMP CHANGE END -->
 
 </body>
 </html>
