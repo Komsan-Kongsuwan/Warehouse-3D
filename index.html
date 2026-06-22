@@ -7012,7 +7012,9 @@ function writeCustomerColoursSheet(){
 // Indeterminate upload progress bar shown under the company name in the sidebar header.
 // Uses a CSS transform animation so the bar keeps moving even while the main thread is
 // busy parsing a large workbook / CSV or rebuilding the 3D scene.
+let uploadBusy = 0;
 function showUploadProgress(label){
+    uploadBusy++;
     const w = document.getElementById('uploadProgress');
     if (!w) return;
     const l = document.getElementById('uploadProgressLabel');
@@ -7020,6 +7022,8 @@ function showUploadProgress(label){
     w.style.display = 'block';
 }
 function hideUploadProgress(){
+    uploadBusy = Math.max(0, uploadBusy - 1);
+    if (uploadBusy > 0) return;     // keep the bar up while other load steps are still running
     const w = document.getElementById('uploadProgress');
     if (w) w.style.display = 'none';
 }
@@ -9513,6 +9517,8 @@ const AUTOLOAD_CSV    = 'Demo_Inventory.csv';
 
 async function initApp() {
     document.getElementById('status').innerHTML = '⏳ Loading layout…';
+    showUploadProgress('Loading…');    // outer hold: keep the bar visible across both load steps
+    await uploadYield();
     let layoutLoaded = false;
 
     // 1) Layout workbook (.xlsx)
@@ -9525,7 +9531,6 @@ async function initApp() {
         parseLayoutBuffer(buf, AUTOLOAD_LAYOUT);   // builds the layout + applies the Camera sheet
         layoutLoaded = true;
     } catch (err) {
-        hideUploadProgress();
         console.warn('Auto-load layout failed (' + AUTOLOAD_LAYOUT + '):', err.message);
     }
 
@@ -9541,7 +9546,6 @@ async function initApp() {
         await uploadYield();
         parseCSV(text.replace(/^\ufeff/, ''));     // strip BOM; Papa.parse accepts the CSV text directly
     } catch (err) {
-        hideUploadProgress();
         console.warn('Auto-load CSV failed (' + AUTOLOAD_CSV + '):', err.message);
     }
 
@@ -9554,6 +9558,8 @@ async function initApp() {
                 'Load a layout .xlsx to begin — or place <b>' + AUTOLOAD_LAYOUT + '</b> and <b>' + AUTOLOAD_CSV + '</b> next to this page so they load automatically.';
         }
     }
+
+    hideUploadProgress();    // release the outer hold -> bar hides once everything is loaded
 }
 
 initApp();
