@@ -9559,7 +9559,9 @@ async function initApp() {
         }
     }
 
-    hideUploadProgress();    // release the outer hold -> bar hides once everything is loaded
+    await uploadYield();     // let the freshly-built (inventory) scene paint before hiding —
+    await uploadYield();     // layout's render is already covered by the following CSV fetch
+    hideUploadProgress();    // release the outer hold -> bar hides once everything is on screen
 }
 
 initApp();
