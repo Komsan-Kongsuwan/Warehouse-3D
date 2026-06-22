@@ -7009,6 +7009,23 @@ function writeCustomerColoursSheet(){
     if (layoutWorkbook.SheetNames.indexOf('Customer Colours') < 0) layoutWorkbook.SheetNames.push('Customer Colours');
 }
 
+// Indeterminate upload progress bar shown under the company name in the sidebar header.
+// Uses a CSS transform animation so the bar keeps moving even while the main thread is
+// busy parsing a large workbook / CSV or rebuilding the 3D scene.
+function showUploadProgress(label){
+    const w = document.getElementById('uploadProgress');
+    if (!w) return;
+    const l = document.getElementById('uploadProgressLabel');
+    if (l && label) l.textContent = label;
+    w.style.display = 'block';
+}
+function hideUploadProgress(){
+    const w = document.getElementById('uploadProgress');
+    if (w) w.style.display = 'none';
+}
+// Yield two frames so the just-shown bar actually paints before a blocking parse/build.
+function uploadYield(){ return new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res))); }
+
 function parseLayoutTemplate(file) {
     const reader = new FileReader();
     reader.onload = e => parseLayoutBuffer(new Uint8Array(e.target.result), file.name);
@@ -7462,10 +7479,12 @@ function parseLayoutBuffer(data, fileName) {
 
             buildRack();
             applyCameraConfig(workbook);   // set start view from the optional Camera sheet
+            hideUploadProgress();
         } catch(err) {
             console.error('Layout template error:', err);
             document.getElementById('status').innerHTML =
                 `<span style="color:var(--red)">✕ Layout error: ${err.message}</span>`;
+            hideUploadProgress();
         }
 }
 
@@ -7476,6 +7495,7 @@ document.getElementById('layoutCard').addEventListener('click', () => {
 document.getElementById('layoutFile').addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
+    showUploadProgress('Loading layout…');
     parseLayoutTemplate(file);
     event.target.value = '';   // clear so re-selecting the SAME filename fires change again
 });
@@ -9390,10 +9410,12 @@ function parseCSV(file) {
                 `<span class="stat-ok">✓</span> <span class="stat-hi">${locationMap.size.toLocaleString()}</span> locations · <span class="stat-hi">${totalRows.toLocaleString()}</span> items loaded`;
 
             buildRack();
+            hideUploadProgress();
         },
         error: function(error) {
             console.error('CSV parsing error:', error);
             document.getElementById('status').innerHTML = `<span style="color:var(--red)">✕ CSV parse error</span>`;
+            hideUploadProgress();
         }
     });
 }
@@ -9410,6 +9432,7 @@ document.getElementById('csvFile').addEventListener('change', (event) => {
     document.getElementById('fileName').textContent = file.name;
     document.getElementById('csvCard').classList.add('loaded');
     document.getElementById('status').textContent = '⏳ Parsing CSV…';
+    showUploadProgress('Loading inventory…');
     parseCSV(file);
     event.target.value = '';   // clear so re-selecting the SAME filename fires change again
 });
@@ -9497,9 +9520,12 @@ async function initApp() {
         const r = await fetch(AUTOLOAD_LAYOUT, { cache: 'no-store' });
         if (!r.ok) throw new Error('HTTP ' + r.status);
         const buf = new Uint8Array(await r.arrayBuffer());
+        showUploadProgress('Loading layout…');
+        await uploadYield();
         parseLayoutBuffer(buf, AUTOLOAD_LAYOUT);   // builds the layout + applies the Camera sheet
         layoutLoaded = true;
     } catch (err) {
+        hideUploadProgress();
         console.warn('Auto-load layout failed (' + AUTOLOAD_LAYOUT + '):', err.message);
     }
 
@@ -9511,8 +9537,11 @@ async function initApp() {
         const fileNameEl = document.getElementById('fileName');
         if (fileNameEl) fileNameEl.textContent = AUTOLOAD_CSV;
         document.getElementById('csvCard')?.classList.add('loaded');
+        showUploadProgress('Loading inventory…');
+        await uploadYield();
         parseCSV(text.replace(/^\ufeff/, ''));     // strip BOM; Papa.parse accepts the CSV text directly
     } catch (err) {
+        hideUploadProgress();
         console.warn('Auto-load CSV failed (' + AUTOLOAD_CSV + '):', err.message);
     }
 
@@ -9613,6 +9642,20 @@ console.log('DEMO Warehouse Rack Simulator initialized');
 <!-- Viewport top-left label -->
 <div id="viewport-label">
     <span class="vp-text">DEMO LOGISTICS</span>
+</div>
+
+<!-- Upload / load progress bar, shown under the DEMO LOGISTICS label -->
+<style>
+    @keyframes uploadSlide { 0%{ transform:translateX(-110%);} 100%{ transform:translateX(300%);} }
+    #uploadProgress { position:fixed; top:50px; left:258px; z-index:9000; width:220px; pointer-events:none; user-select:none; }
+    #uploadProgressLabel { font-family:'Rajdhani',sans-serif; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--cyan); text-shadow:0 1px 4px rgba(0,0,0,0.55); margin-bottom:4px; }
+    #uploadProgressTrack { height:6px; background:rgba(255,255,255,0.18); border-radius:4px; overflow:hidden; position:relative; box-shadow:0 1px 4px rgba(0,0,0,0.35); }
+    #uploadProgressBar { position:absolute; top:0; left:0; height:100%; width:35%; background:var(--cyan); border-radius:4px; animation:uploadSlide 1.1s ease-in-out infinite; }
+    body.light #uploadProgressTrack { background:rgba(10,35,70,0.15); }
+</style>
+<div id="uploadProgress" style="display:none;">
+    <div id="uploadProgressLabel">Loading…</div>
+    <div id="uploadProgressTrack"><div id="uploadProgressBar"></div></div>
 </div>
 
 <!-- Developer credit -->
